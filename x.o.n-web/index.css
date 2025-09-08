@@ -1,0 +1,255 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.search-container {
+    transition: max-width 0.4s ease-in-out, opacity 0.3s ease-in-out;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.search-container.open {
+    max-width: 250px; /* Adjust as needed */
+    opacity: 1;
+}
+
+.search-form {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.search-input {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px; /* pill shape */
+    font-size: 0.875rem;
+    transition: background-color 0.2s, border-color 0.2s;
+    outline: none;
+}
+
+.search-input::placeholder {
+    color: #9ca3af; /* gray-400 */
+}
+
+.search-input:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #4f46e5; /* indigo-500, or your theme's primary color */
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5);
+}
+
+/* Ensure the parent flex container doesn't shrink the search bar when it's open */
+.search-and-filters {
+    display: flex;
+    align-items: center;
+    flex-shrink: 1;
+    min-width: 0; /* Important for allowing children to shrink */
+}
+
+.filters {
+    flex-shrink: 1;
+    min-width: 0; /* Allows the filter list to shrink and scroll */
+}
+
+/* Container responsive configuration */
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Tablet specific fixes */
+  @media (min-width: 640px) {
+    .container {
+      max-width: 100%;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  /* Tablet optimization - ensure full width usage */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .container {
+      max-width: 100%;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      max-width: 1200px;
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .container {
+      max-width: 1280px;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .container {
+      max-width: 1536px;
+    }
+  }
+}
+
+/* Fix for tablet layout consistency */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Ensure full width usage on tablets */
+  .tablet-fix {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    max-width: 100% !important;
+  }
+
+  /* Override container behavior specifically for tablet range */
+  .container {
+    max-width: calc(100vw - 2rem) !important;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+body {
+  font-family: 'Rubik', sans-serif;
+  background-color: #0A0A10;
+  color: #E5E7EB; /* gray-200 */
+  overscroll-behavior-y: none;
+}
+.font-orbitron {
+  font-family: 'Orbitron', sans-serif;
+}
+.bg-theme-gradient {
+  background: linear-gradient(90deg, #3b82f6, #a855f7);
+}
+.text-theme-gradient {
+  background: linear-gradient(90deg, #3b82f6, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+}
+ .border-theme-gradient {
+  border-image-slice: 1;
+  border-image-source: linear-gradient(to right, #3b82f6, #a855f7);
+}
+.glass {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  background: rgba(17, 24, 39, 0.3); /* gray-900/30 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.shadow-glow {
+  transition: box-shadow 0.3s ease-in-out;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0), 0 0 20px rgba(168, 85, 247, 0);
+}
+.hover-glow:hover {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), 0 0 20px rgba(168, 85, 247, 0.3);
+}
+
+.sheen-hover {
+  position: relative;
+  overflow: hidden;
+}
+.sheen-hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 80%);
+  transform: skewX(-25deg);
+  transition: left 0.6s ease;
+}
+.sheen-hover:hover::before {
+  left: 100%;
+}
+
+@keyframes marquee-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes marquee-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+.scrolling-wrapper {
+  display: flex;
+  flex-shrink: 0;
+}
+.animate-marquee-left {
+  animation: marquee-left 120s linear infinite;
+}
+.animate-marquee-right {
+  animation: marquee-right 120s linear infinite;
+}
+@keyframes fadeInOnLoad {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-in-on-load {
+  animation: fadeInOnLoad 0.5s ease-in-out;
+}
+
+/* Initial Loader Styles */
+.initial-loader {
+  position: fixed;
+  inset: 0;
+  background-color: #0A0A10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 1s ease-in-out; /* Slower fade-out as requested */
+  opacity: 1;
+}
+.initial-loader.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.loader-text {
+  font-size: 3.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #D1D5DB; /* Metallic-like gray */
+  position: relative;
+  overflow: hidden;
+}
+.loader-text::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  transform: translateX(-100%);
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: metallic-sheen 2.5s infinite;
+}
+@media (min-width: 768px) {
+  .loader-text {
+    font-size: 5rem;
+  }
+}
+@keyframes metallic-sheen {
+  0% {
+    transform: translateX(-100%) skewX(-25deg);
+  }
+  100% {
+    transform: translateX(100%) skewX(-25deg);
+  }
+}
