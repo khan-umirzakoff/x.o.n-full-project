@@ -12,7 +12,7 @@ on:
     branches: [ main ]
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: selkies-project/nvidia-glx-desktop
+  IMAGE_NAME: selkies-project/nvidia-egl-desktop
 jobs:
   build:
     name: Build and push Ubuntu ${{ matrix.os_version }}

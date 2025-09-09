@@ -5,24 +5,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xgl
+  name: egl
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: xgl
+      app: egl
   template:
     metadata:
       labels:
-        app: xgl
+        app: egl
     spec:
-      hostname: xgl
+      hostname: egl
       # Uncomment the below line to disable network isolation for WebRTC connectivity, display `:20` and `:21` should not be used in the host, may show an error if disallowed by the cluster
 #      hostNetwork: true
       containers:
-      - name: xgl
+      - name: egl
         # Change tag `latest` to Ubuntu versions such as `24.04`, use a persistent tag such as `24.04-20210101010101` to persist a certain container version
-        image: ghcr.io/selkies-project/nvidia-glx-desktop:latest
+        image: ghcr.io/selkies-project/nvidia-egl-desktop:latest
         env:
         - name: TZ
           value: "UTC"
@@ -36,9 +36,9 @@ spec:
           value: "96"
         - name: DISPLAY_CDEPTH
           value: "24"
-        # With driver versions lower than 550, change to `DP-0` or any other `DP-*` port for larger resolution support if NOT using datacenter GPUs
-        - name: VIDEO_PORT
-          value: "DFP"
+        # Keep to default unless you know what you are doing with VirtualGL, `VGL_DISPLAY` should be set to either `egl[n]` or `/dev/dri/card[n]` only when the device was passed to the container
+#        - name: VGL_DISPLAY
+#          value: "egl"
         # Choose either `value:` or `secretKeyRef:` but not both at the same time
         - name: PASSWD
           value: "mypasswd"
@@ -56,10 +56,9 @@ spec:
         ###
         # Selkies parameters, for additional configurations see `selkies-gstreamer --help`
         ###
-        # Change `SELKIES_ENCODER` to `x264enc`, `vp8enc`, or `vp9enc` if your GPU does not support `H.264 (AVCHD)` under the `NVENC - Encoding` section in https://developer.nvidia.com/video-encode-and-decode-gpu-support-matrix-new
+        # Change `SELKIES_ENCODER` to `x264enc`, `vp8enc`, or `vp9enc` if using software fallback without allocated GPUs or your GPU does not support `H.264 (AVCHD)` under the `NVENC - Encoding` section in https://developer.nvidia.com/video-encode-and-decode-gpu-support-matrix-new
         - name: SELKIES_ENCODER
           value: "nvh264enc"
-        # Do NOT set to `true` if physical monitor is connected to video port
         - name: SELKIES_ENABLE_RESIZE
           value: "false"
         # Initial video bitrate in kilobits per second, may be changed later within web interface
@@ -159,18 +158,18 @@ spec:
         - mountPath: /dev/shm
           name: dshm
         - mountPath: /cache
-          name: xgl-cache-vol
+          name: egl-cache-vol
         - mountPath: /home/ubuntu
-          name: xgl-root-vol
+          name: egl-root-vol
       volumes:
       - name: dshm
         emptyDir:
           medium: Memory
-      - name: xgl-cache-vol
+      - name: egl-cache-vol
         emptyDir: {}
 #        persistentVolumeClaim:
-#          claimName: xgl-cache-vol
-      - name: xgl-root-vol
+#          claimName: egl-cache-vol
+      - name: egl-root-vol
         emptyDir: {}
 #        persistentVolumeClaim:
-#          claimName: xgl-root-vol
+#          claimName: egl-root-vol
