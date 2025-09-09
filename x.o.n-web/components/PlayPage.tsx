@@ -12,13 +12,15 @@ const PlayPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isStarted, setIsStarted] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleFullscreenChange = useCallback(() => {
-    if (document.fullscreenElement === null) {
-      navigate(-1); // Go back to the previous page
+    // Only show confirmation if the game has started
+    if (document.fullscreenElement === null && isStarted) {
+      setShowExitConfirmation(true);
     }
-  }, [navigate]);
+  }, [isStarted]);
 
   useEffect(() => {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -63,7 +65,22 @@ const PlayPage: React.FC = () => {
         setTimeout(() => setShowInstructions(false), 3000);
       }).catch(err => {
         console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        // If fullscreen fails, we still start the game in a non-fullscreen view
         setIsStarted(true);
+      });
+    }
+  };
+
+  const handleConfirmExit = () => {
+    navigate(-1);
+  };
+
+  const handleCancelExit = () => {
+    setShowExitConfirmation(false);
+    if (containerRef.current) {
+      // Try to re-enter fullscreen
+      containerRef.current.requestFullscreen().catch(err => {
+        console.error(`Error attempting to re-enter full-screen mode: ${err.message} (${err.name})`);
       });
     }
   };
@@ -116,6 +133,29 @@ const PlayPage: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {showExitConfirmation && (
+        <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-8 rounded-lg shadow-lg text-center mx-4">
+            <h2 className="text-2xl font-bold text-white mb-4">Sessiyani yakunlaysizmi?</h2>
+            <p className="text-gray-300 mb-6">O'yindan chiqishni xohlaysizmi?</p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleConfirmExit}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition-colors text-lg"
+              >
+                Ha
+              </button>
+              <button
+                onClick={handleCancelExit}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg transition-colors text-lg"
+              >
+                Yo'q
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
