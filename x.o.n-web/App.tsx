@@ -298,7 +298,7 @@ const AppContent: React.FC = () => {
           <Route path="support" element={<SupportPage t={t} />} />
           <Route path="*" element={<NotFoundPage t={t} />} />
         </Route>
-        <Route path="/play" element={<PlayPage />} />
+        <Route path="/play/:gameId" element={<PlayPage />} />
       </Routes>
 
       <AuthModal
