@@ -440,7 +440,7 @@ const GameDetailsPage: React.FC<GameDetailsPageProps> = ({ t, language, currentU
             </div>
             
             <div className="flex items-center gap-4">
-              <button onClick={handlePlayClick} className="bg-theme-gradient text-white font-bold text-lg rounded-lg px-8 py-3 hover-glow transition-all shadow-lg transform hover:scale-105">{t('playNow')}</button>
+              <Link to="/play" className="bg-theme-gradient text-white font-bold text-lg rounded-lg px-8 py-3 hover-glow transition-all shadow-lg transform hover:scale-105">{t('playNow')}</Link>
               <button onClick={() => setIsShareModalOpen(true)} className="bg-white/10 text-white rounded-lg p-3 hover:bg-white/20 transition-colors">
                 <ShareIcon className="w-6 h-6" />
               </button>
