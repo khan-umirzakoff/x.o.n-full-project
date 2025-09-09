@@ -101,7 +101,7 @@ const PlayPage: React.FC = () => {
       ) : (
         <>
           <iframe
-            src="http://localhost:8080"
+            src="http://localhost:8080?ui=none"
             title="Selkies Stream"
             style={{
               width: '100%',
