@@ -296,9 +296,9 @@ const AppContent: React.FC = () => {
           <Route path="nvidia-tech" element={<DownloadModal t={t} />} />
           <Route path="about-service" element={<AboutServicePage t={t} />} />
           <Route path="support" element={<SupportPage t={t} />} />
-          <Route path="play" element={<PlayPage />} />
           <Route path="*" element={<NotFoundPage t={t} />} />
         </Route>
+        <Route path="/play" element={<PlayPage />} />
       </Routes>
 
       <AuthModal
