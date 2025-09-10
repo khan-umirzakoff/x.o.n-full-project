@@ -510,14 +510,7 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
     apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/debconf/* /var/log/* /tmp/* /var/tmp/* && \
     curl -o /usr/bin/winetricks -fsSL "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks" && \
     chmod -f 755 /usr/bin/winetricks && \
-    curl -o /usr/share/bash-completion/completions/winetricks -fsSL "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks.bash-completion"; \
-    # Install Steam
-    add-apt-repository -y multiverse && \
-    apt-get update && \
-    echo "steam steam/question select \"I AGREE\"" | debconf-set-selections && \
-    echo "steam steam/license note ''" | debconf-set-selections && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends steam; \
-    fi
+    curl -o /usr/share/bash-completion/completions/winetricks -fsSL "https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks.bash-completion"; fi
 
 # Install latest Selkies (https://github.com/selkies-project/selkies) build, Python application, and web application, should be consistent with Selkies documentation
 ARG PIP_BREAK_SYSTEM_PACKAGES=1
@@ -597,11 +590,6 @@ COPY --chown=1000:1000 kasmvnc-entrypoint.sh /etc/kasmvnc-entrypoint.sh
 RUN chmod -f 755 /etc/kasmvnc-entrypoint.sh
 COPY --chown=1000:1000 supervisord.conf /etc/supervisord.conf
 RUN chmod -f 755 /etc/supervisord.conf
-
-# Copy and set up the game launch agent
-COPY --chown=1000:1000 agent.py /home/ubuntu/agent.py
-RUN chmod -f 755 /home/ubuntu/agent.py && \
-    pip3 install --no-cache-dir --force-reinstall "Flask>=2.0" "Flask-Cors>=3.0"
 
 # Configure coTURN script
 RUN echo "#!/bin/bash\n\
