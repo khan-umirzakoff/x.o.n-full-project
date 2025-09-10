@@ -3,9 +3,11 @@ services:
     container_name: egl
     hostname: egl
     # Change tag `latest` to Ubuntu versions such as `24.04`, use a persistent tag such as `24.04-20210101010101` to persist a certain container version
-    image: ghcr.io/selkies-project/nvidia-egl-desktop:latest
+    image: xon-streaming-client:latest
     ports:
     - '8080:8080'
+    # Expose the port for the game launch agent
+    - '5001:5001'
     # Internal TURN server settings
 #    - '3478:3478'
 #    - '65534-65535:65534-65535'
@@ -22,9 +24,16 @@ services:
             capabilities: [gpu]
     tmpfs:
     - '/dev/shm:rw'
-#    volumes:
-#    - 'egl-cache-vol:/cache'
-#    - 'egl-root-vol:/home/ubuntu'
+    volumes:
+    # Mount a volume to persist the user's home directory.
+    # This saves game data, Steam login tokens, and configurations.
+    # To use a specific host path for a user (e.g., for user 'player1'), you can change the line below to:
+    # - /path/to/player1_data:/home/ubuntu
+    - egl-home-vol:/home/ubuntu
+    # Mount a host directory containing large game files into the container.
+    # The user should place their game installation files in a directory on the host (e.g., /data/games)
+    # and update the path on the left side of the colon.
+    - /data/games:/opt/games:ro
     # Uncomment the below line to disable network isolation for WebRTC connectivity, display `:20` and `:21` should not be used in the host, may show an error if disallowed by the cluster
 #    network_mode: 'host'
     environment:
@@ -84,3 +93,6 @@ services:
 #    - SELKIES_TURN_PASSWORD=mypasswd
     # TURN REST URI authentication, all TURN server settings above are ignored if enabled
 #    - 'SELKIES_TURN_REST_URI=http://localhost:8008'
+
+volumes:
+  egl-home-vol:
