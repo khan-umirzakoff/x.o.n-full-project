@@ -26,5 +26,10 @@
     "paths": {
       "@/*" :  ["./*"]
     }
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "x.o.n-interactive-3d-logo"
+  ]
 }

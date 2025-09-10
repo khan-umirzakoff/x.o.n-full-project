@@ -11,52 +11,32 @@ const PlayPage: React.FC = () => {
   const [backgroundImage, setBackgroundImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isStarted, setIsStarted] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true); // Show instructions by default when game starts
-  const [instructionText, setInstructionText] = useState("To'liq ekrandan chiqish uchun ESC tugmasini bosing");
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [streamUrl, setStreamUrl] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastExitAttemptRef = useRef(0);
   const instructionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFullscreenChange = useCallback(() => {
-    if (document.fullscreenElement === null && isStarted) {
-      const now = Date.now();
-      if (now - lastExitAttemptRef.current < 2000) {
-        // This is the second press, so exit
-        if (instructionTimeoutRef.current) {
-          clearTimeout(instructionTimeoutRef.current);
-        }
-        navigate(-1);
-      } else {
-        // This is the first press
-        lastExitAttemptRef.current = now;
-        // Re-enter fullscreen immediately
-        containerRef.current?.requestFullscreen().catch(err => {
-          console.error(`Error attempting to re-enter full-screen mode: ${err.message} (${err.name})`);
-        });
-
-        // Update instruction text
-        setInstructionText("Chiqish uchun yana bir marta ESC bosing");
-        setShowInstructions(true);
-
-        // Clear any existing timeout
-        if (instructionTimeoutRef.current) {
-          clearTimeout(instructionTimeoutRef.current);
-        }
-
-        // Set a timeout to reset the message
-        instructionTimeoutRef.current = setTimeout(() => {
-          setInstructionText("To'liq ekrandan chiqish uchun ESC tugmasini bosing");
-          // Optionally hide the message again after some time
-          // setShowInstructions(false);
-        }, 2000);
+    const isFullscreen = document.fullscreenElement !== null;
+    if (!isFullscreen && isStarted) {
+      // Cleanup instruction timeout on exit
+      if (instructionTimeoutRef.current) {
+        clearTimeout(instructionTimeoutRef.current);
       }
+      navigate(-1);
     }
   }, [navigate, isStarted]);
 
   useEffect(() => {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    // Cleanup the event listener and any pending timeouts when the component unmounts
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      if (instructionTimeoutRef.current) {
+        clearTimeout(instructionTimeoutRef.current);
+      }
     };
   }, [handleFullscreenChange]);
 
@@ -88,19 +68,57 @@ const PlayPage: React.FC = () => {
     fetchGameData();
   }, [gameId, navigate]);
 
-  const handleStart = () => {
-    if (containerRef.current) {
-      containerRef.current.requestFullscreen().then(() => {
-        setIsStarted(true);
-        setShowInstructions(true); // Show instructions when game starts
-        // Hide instructions after 3 seconds
-        instructionTimeoutRef.current = setTimeout(() => {
-          setShowInstructions(false);
-        }, 3000);
-      }).catch(err => {
-        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-        setIsStarted(true);
+  const handleStart = async () => {
+    setError(null);
+    const instanceIp = import.meta.env.VITE_INSTANCE_IP;
+
+    if (!instanceIp || instanceIp === "YOUR_INSTANCE_IP_HERE" || instanceIp === "127.0.0.1") {
+      setError("Xatolik: Instance IP manzili .env faylida ko'rsatilmagan yoki noto'g'ri. .env.example fayliga qarang.");
+      return;
+    }
+
+    const agentUrl = `http://${instanceIp}:5001/launch`;
+
+    try {
+      const response = await fetch(agentUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ app_id: gameId }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to launch game.');
+      }
+
+      console.log('Launch command sent successfully.');
+
+      // Construct the stream URL and set it in state
+      const newStreamUrl = `http://${instanceIp}:8080?ui=none`;
+      setStreamUrl(newStreamUrl);
+
+      // Proceed with fullscreen and starting the iframe
+      if (containerRef.current) {
+        containerRef.current.requestFullscreen().then(() => {
+          setIsStarted(true);
+          setShowInstructions(true);
+          // Hide instructions after 3 seconds
+          instructionTimeoutRef.current = setTimeout(() => {
+            setShowInstructions(false);
+          }, 3000);
+        }).catch(err => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+          setError(`Could not enter fullscreen. Please check browser permissions. Error: ${err.message}`);
+          // Still show the iframe even if fullscreen fails
+          setIsStarted(true);
+        });
+      }
+
+    } catch (err: any) {
+      console.error('Error launching game:', err);
+      setError(`Failed to connect to the game instance. Is it running? Error: ${err.message}`);
     }
   };
 
@@ -129,15 +147,19 @@ const PlayPage: React.FC = () => {
             <button
               onClick={handleStart}
               className="bg-theme-gradient text-white font-bold text-2xl rounded-lg px-12 py-6 hover-glow transition-all shadow-lg transform hover:scale-105"
+              disabled={isLoading}
             >
               Boshlash
             </button>
+            {error && (
+              <p className="text-red-500 mt-4 bg-black/50 p-2 rounded">{error}</p>
+            )}
           </div>
         </>
       ) : (
         <>
           <iframe
-            src="http://localhost:8080?ui=none"
+            src={streamUrl}
             title="Selkies Stream"
             style={{
               width: '100%',
@@ -148,7 +170,7 @@ const PlayPage: React.FC = () => {
           />
           {showInstructions && (
             <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-md transition-opacity duration-500 animate-pulse">
-              {instructionText}
+              To'liq ekrandan chiqish uchun ESC tugmasini bosing
             </div>
           )}
         </>
