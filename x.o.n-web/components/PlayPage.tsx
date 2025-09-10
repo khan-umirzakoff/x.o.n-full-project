@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { Game } from '../types';
 import { getImageSrc } from '../utils/imageUtils';
@@ -7,6 +7,7 @@ import { getImageSrc } from '../utils/imageUtils';
 const PlayPage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [game, setGame] = useState<Game | null>(null);
   const [backgroundImage, setBackgroundImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -69,10 +70,14 @@ const PlayPage: React.FC = () => {
 
   const handleStart = async () => {
     setError(null);
+    const instanceIp = searchParams.get('instance_ip');
 
-    // TODO: Replace with the actual IP address of your game instance.
-    // This could be passed via URL params or a config file in a real application.
-    const agentUrl = 'http://127.0.0.1:5001/launch';
+    if (!instanceIp) {
+      setError("Xatolik: Instance IP manzili URL'da ko'rsatilmagan. (Masalan: ?instance_ip=123.45.67.89)");
+      return;
+    }
+
+    const agentUrl = `http://${instanceIp}:5001/launch`;
 
     try {
       const response = await fetch(agentUrl, {
