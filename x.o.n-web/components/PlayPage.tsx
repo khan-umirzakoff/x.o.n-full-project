@@ -14,6 +14,7 @@ const PlayPage: React.FC = () => {
   const [isStarted, setIsStarted] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streamUrl, setStreamUrl] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const instructionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -95,6 +96,10 @@ const PlayPage: React.FC = () => {
 
       console.log('Launch command sent successfully.');
 
+      // Construct the stream URL and set it in state
+      const newStreamUrl = `http://${instanceIp}:8080?ui=none`;
+      setStreamUrl(newStreamUrl);
+
       // Proceed with fullscreen and starting the iframe
       if (containerRef.current) {
         containerRef.current.requestFullscreen().then(() => {
@@ -107,7 +112,8 @@ const PlayPage: React.FC = () => {
         }).catch(err => {
           console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
           setError(`Could not enter fullscreen. Please check browser permissions. Error: ${err.message}`);
-          setIsStarted(true); // Still show the iframe even if fullscreen fails
+          // Still show the iframe even if fullscreen fails
+          setIsStarted(true);
         });
       }
 
@@ -154,7 +160,7 @@ const PlayPage: React.FC = () => {
       ) : (
         <>
           <iframe
-            src="http://localhost:8080?ui=none"
+            src={streamUrl}
             title="Selkies Stream"
             style={{
               width: '100%',
