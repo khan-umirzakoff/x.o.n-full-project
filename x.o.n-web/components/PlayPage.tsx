@@ -11,52 +11,30 @@ const PlayPage: React.FC = () => {
   const [backgroundImage, setBackgroundImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isStarted, setIsStarted] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true); // Show instructions by default when game starts
-  const [instructionText, setInstructionText] = useState("To'liq ekrandan chiqish uchun ESC tugmasini bosing");
+  const [showInstructions, setShowInstructions] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastExitAttemptRef = useRef(0);
   const instructionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleFullscreenChange = useCallback(() => {
-    if (document.fullscreenElement === null && isStarted) {
-      const now = Date.now();
-      if (now - lastExitAttemptRef.current < 2000) {
-        // This is the second press, so exit
-        if (instructionTimeoutRef.current) {
-          clearTimeout(instructionTimeoutRef.current);
-        }
-        navigate(-1);
-      } else {
-        // This is the first press
-        lastExitAttemptRef.current = now;
-        // Re-enter fullscreen immediately
-        containerRef.current?.requestFullscreen().catch(err => {
-          console.error(`Error attempting to re-enter full-screen mode: ${err.message} (${err.name})`);
-        });
-
-        // Update instruction text
-        setInstructionText("Chiqish uchun yana bir marta ESC bosing");
-        setShowInstructions(true);
-
-        // Clear any existing timeout
-        if (instructionTimeoutRef.current) {
-          clearTimeout(instructionTimeoutRef.current);
-        }
-
-        // Set a timeout to reset the message
-        instructionTimeoutRef.current = setTimeout(() => {
-          setInstructionText("To'liq ekrandan chiqish uchun ESC tugmasini bosing");
-          // Optionally hide the message again after some time
-          // setShowInstructions(false);
-        }, 2000);
+    const isFullscreen = document.fullscreenElement !== null;
+    if (!isFullscreen && isStarted) {
+      // Cleanup instruction timeout on exit
+      if (instructionTimeoutRef.current) {
+        clearTimeout(instructionTimeoutRef.current);
       }
+      navigate(-1);
     }
   }, [navigate, isStarted]);
 
   useEffect(() => {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    // Cleanup the event listener and any pending timeouts when the component unmounts
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      if (instructionTimeoutRef.current) {
+        clearTimeout(instructionTimeoutRef.current);
+      }
     };
   }, [handleFullscreenChange]);
 
@@ -92,14 +70,15 @@ const PlayPage: React.FC = () => {
     if (containerRef.current) {
       containerRef.current.requestFullscreen().then(() => {
         setIsStarted(true);
-        setShowInstructions(true); // Show instructions when game starts
+        setShowInstructions(true);
         // Hide instructions after 3 seconds
         instructionTimeoutRef.current = setTimeout(() => {
           setShowInstructions(false);
         }, 3000);
       }).catch(err => {
         console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-        setIsStarted(true);
+        // If fullscreen fails, we might still want to start the game or show an error
+        setIsStarted(true); // Or handle error appropriately
       });
     }
   };
@@ -148,7 +127,7 @@ const PlayPage: React.FC = () => {
           />
           {showInstructions && (
             <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-md transition-opacity duration-500 animate-pulse">
-              {instructionText}
+              To'liq ekrandan chiqish uchun ESC tugmasini bosing
             </div>
           )}
         </>
