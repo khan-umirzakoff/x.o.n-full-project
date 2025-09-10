@@ -6,6 +6,8 @@ services:
     image: xon-streaming-client:latest
     ports:
     - '8080:8080'
+    # Expose the port for the game launch agent
+    - '5001:5001'
     # Internal TURN server settings
 #    - '3478:3478'
 #    - '65534-65535:65534-65535'

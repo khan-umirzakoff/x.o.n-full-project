@@ -12,6 +12,7 @@ const PlayPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isStarted, setIsStarted] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const instructionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -66,20 +67,48 @@ const PlayPage: React.FC = () => {
     fetchGameData();
   }, [gameId, navigate]);
 
-  const handleStart = () => {
-    if (containerRef.current) {
-      containerRef.current.requestFullscreen().then(() => {
-        setIsStarted(true);
-        setShowInstructions(true);
-        // Hide instructions after 3 seconds
-        instructionTimeoutRef.current = setTimeout(() => {
-          setShowInstructions(false);
-        }, 3000);
-      }).catch(err => {
-        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-        // If fullscreen fails, we might still want to start the game or show an error
-        setIsStarted(true); // Or handle error appropriately
+  const handleStart = async () => {
+    setError(null);
+
+    // TODO: Replace with the actual IP address of your game instance.
+    // This could be passed via URL params or a config file in a real application.
+    const agentUrl = 'http://127.0.0.1:5001/launch';
+
+    try {
+      const response = await fetch(agentUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ app_id: gameId }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to launch game.');
+      }
+
+      console.log('Launch command sent successfully.');
+
+      // Proceed with fullscreen and starting the iframe
+      if (containerRef.current) {
+        containerRef.current.requestFullscreen().then(() => {
+          setIsStarted(true);
+          setShowInstructions(true);
+          // Hide instructions after 3 seconds
+          instructionTimeoutRef.current = setTimeout(() => {
+            setShowInstructions(false);
+          }, 3000);
+        }).catch(err => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+          setError(`Could not enter fullscreen. Please check browser permissions. Error: ${err.message}`);
+          setIsStarted(true); // Still show the iframe even if fullscreen fails
+        });
+      }
+
+    } catch (err: any) {
+      console.error('Error launching game:', err);
+      setError(`Failed to connect to the game instance. Is it running? Error: ${err.message}`);
     }
   };
 
@@ -108,9 +137,13 @@ const PlayPage: React.FC = () => {
             <button
               onClick={handleStart}
               className="bg-theme-gradient text-white font-bold text-2xl rounded-lg px-12 py-6 hover-glow transition-all shadow-lg transform hover:scale-105"
+              disabled={isLoading}
             >
               Boshlash
             </button>
+            {error && (
+              <p className="text-red-500 mt-4 bg-black/50 p-2 rounded">{error}</p>
+            )}
           </div>
         </>
       ) : (

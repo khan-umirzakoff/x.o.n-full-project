@@ -598,6 +598,11 @@ RUN chmod -f 755 /etc/kasmvnc-entrypoint.sh
 COPY --chown=1000:1000 supervisord.conf /etc/supervisord.conf
 RUN chmod -f 755 /etc/supervisord.conf
 
+# Copy and set up the game launch agent
+COPY --chown=1000:1000 agent.py /home/ubuntu/agent.py
+RUN chmod -f 755 /home/ubuntu/agent.py && \
+    pip3 install --no-cache-dir --force-reinstall "Flask>=2.0" "Flask-Cors>=3.0"
+
 # Configure coTURN script
 RUN echo "#!/bin/bash\n\
 set -e\n\
