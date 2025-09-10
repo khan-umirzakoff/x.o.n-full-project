@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Game } from '../types';
 import { getImageSrc } from '../utils/imageUtils';
@@ -7,7 +7,6 @@ import { getImageSrc } from '../utils/imageUtils';
 const PlayPage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [game, setGame] = useState<Game | null>(null);
   const [backgroundImage, setBackgroundImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -71,10 +70,10 @@ const PlayPage: React.FC = () => {
 
   const handleStart = async () => {
     setError(null);
-    const instanceIp = searchParams.get('instance_ip');
+    const instanceIp = import.meta.env.VITE_INSTANCE_IP;
 
-    if (!instanceIp) {
-      setError("Xatolik: Instance IP manzili URL'da ko'rsatilmagan. (Masalan: ?instance_ip=123.45.67.89)");
+    if (!instanceIp || instanceIp === "YOUR_INSTANCE_IP_HERE" || instanceIp === "127.0.0.1") {
+      setError("Xatolik: Instance IP manzili .env faylida ko'rsatilmagan yoki noto'g'ri. .env.example fayliga qarang.");
       return;
     }
 
