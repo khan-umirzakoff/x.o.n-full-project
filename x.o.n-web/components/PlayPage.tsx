@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Game } from '../types';
@@ -10,35 +10,9 @@ const PlayPage: React.FC = () => {
   const [game, setGame] = useState<Game | null>(null);
   const [backgroundImage, setBackgroundImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isStarted, setIsStarted] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [streamUrl, setStreamUrl] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
-  const instructionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleFullscreenChange = useCallback(() => {
-    const isFullscreen = document.fullscreenElement !== null;
-    if (!isFullscreen && isStarted) {
-      // Cleanup instruction timeout on exit
-      if (instructionTimeoutRef.current) {
-        clearTimeout(instructionTimeoutRef.current);
-      }
-      navigate(-1);
-    }
-  }, [navigate, isStarted]);
-
-  useEffect(() => {
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-
-    // Cleanup the event listener and any pending timeouts when the component unmounts
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      if (instructionTimeoutRef.current) {
-        clearTimeout(instructionTimeoutRef.current);
-      }
-    };
-  }, [handleFullscreenChange]);
+  // This state is to prevent double-clicking the button
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!gameId) {
@@ -57,9 +31,9 @@ const PlayPage: React.FC = () => {
         } else {
           navigate('/not-found');
         }
-      } catch (error) {
-        console.error('Failed to fetch game data:', error);
-        navigate('/');
+      } catch (err) {
+        console.error('Failed to fetch game data:', err);
+        setError('Could not load game data.');
       } finally {
         setIsLoading(false);
       }
@@ -70,10 +44,20 @@ const PlayPage: React.FC = () => {
 
   const handleStart = async () => {
     setError(null);
-    const instanceIp = import.meta.env.VITE_INSTANCE_IP;
+    setIsSubmitting(true);
 
-    if (!instanceIp || instanceIp === "YOUR_INSTANCE_IP_HERE" || instanceIp === "127.0.0.1") {
-      setError("Xatolik: Instance IP manzili .env faylida ko'rsatilmagan yoki noto'g'ri. .env.example fayliga qarang.");
+    const instanceIp = import.meta.env.VITE_INSTANCE_IP;
+    const streamUrl = import.meta.env.VITE_STREAM_URL;
+
+    if (!instanceIp || instanceIp.includes("YOUR_INSTANCE_IP_HERE")) {
+      setError("Xatolik: Instance IP manzili .env faylida ko'rsatilmagan. .env.example fayliga qarang.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!streamUrl || streamUrl.includes("your_token_here")) {
+      setError("Xatolik: To'liq stream URL manzili (token bilan) .env faylida ko'rsatilmagan.");
+      setIsSubmitting(false);
       return;
     }
 
@@ -90,35 +74,17 @@ const PlayPage: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to launch game.');
+        throw new Error(errorData.message || 'Agentdan xatolik keldi.');
       }
 
-      console.log('Launch command sent successfully.');
-
-      // Construct the stream URL and set it in state
-      const newStreamUrl = `http://${instanceIp}:8080?ui=none`;
-      setStreamUrl(newStreamUrl);
-
-      // Proceed with fullscreen and starting the iframe
-      if (containerRef.current) {
-        containerRef.current.requestFullscreen().then(() => {
-          setIsStarted(true);
-          setShowInstructions(true);
-          // Hide instructions after 3 seconds
-          instructionTimeoutRef.current = setTimeout(() => {
-            setShowInstructions(false);
-          }, 3000);
-        }).catch(err => {
-          console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-          setError(`Could not enter fullscreen. Please check browser permissions. Error: ${err.message}`);
-          // Still show the iframe even if fullscreen fails
-          setIsStarted(true);
-        });
-      }
+      console.log('Launch command sent successfully. Redirecting...');
+      // On success, redirect the browser to the stream URL.
+      window.location.href = streamUrl;
 
     } catch (err: any) {
       console.error('Error launching game:', err);
-      setError(`Failed to connect to the game instance. Is it running? Error: ${err.message}`);
+      setError(`Instance bilan bog'lanib bo'lmadi. Ishlayotganiga ishonch hosil qiling. Xato: ${err.message}`);
+      setIsSubmitting(false);
     }
   };
 
@@ -132,49 +98,26 @@ const PlayPage: React.FC = () => {
 
   return (
     <div
-      ref={containerRef}
       className="w-screen h-screen bg-cover bg-center flex items-center justify-center"
       style={{
-        backgroundImage: !isStarted ? `url(${backgroundImage})` : 'none',
+        backgroundImage: `url(${backgroundImage})`,
         backgroundColor: 'black'
       }}
     >
-      {!isStarted ? (
-        <>
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          <div className="relative z-10 text-center">
-            <h1 className="text-5xl font-bold text-white mb-8 drop-shadow-lg">{game?.title}</h1>
-            <button
-              onClick={handleStart}
-              className="bg-theme-gradient text-white font-bold text-2xl rounded-lg px-12 py-6 hover-glow transition-all shadow-lg transform hover:scale-105"
-              disabled={isLoading}
-            >
-              Boshlash
-            </button>
-            {error && (
-              <p className="text-red-500 mt-4 bg-black/50 p-2 rounded">{error}</p>
-            )}
-          </div>
-        </>
-      ) : (
-        <>
-          <iframe
-            src={streamUrl}
-            title="Selkies Stream"
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-            }}
-            allow="fullscreen; gamepad; microphone; camera"
-          />
-          {showInstructions && (
-            <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-md transition-opacity duration-500 animate-pulse">
-              To'liq ekrandan chiqish uchun ESC tugmasini bosing
-            </div>
-          )}
-        </>
-      )}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="relative z-10 text-center">
+        <h1 className="text-5xl font-bold text-white mb-8 drop-shadow-lg">{game?.title}</h1>
+        <button
+          onClick={handleStart}
+          className="bg-theme-gradient text-white font-bold text-2xl rounded-lg px-12 py-6 hover-glow transition-all shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Boshlanmoqda...' : 'Boshlash'}
+        </button>
+        {error && (
+          <p className="text-red-500 mt-4 bg-black/50 p-2 rounded">{error}</p>
+        )}
+      </div>
     </div>
   );
 };
