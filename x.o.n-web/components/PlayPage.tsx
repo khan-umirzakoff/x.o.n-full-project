@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Game } from '../types';
@@ -11,8 +11,40 @@ const PlayPage: React.FC = () => {
   const [backgroundImage, setBackgroundImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // This state is to prevent double-clicking the button
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State for the hybrid embed model
+  const [isStarted, setIsStarted] = useState(false);
+  const [streamUrl, setStreamUrl] = useState('');
+  const [showInstructions, setShowInstructions] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const instructionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Corrected fullscreen handler that exits on a single ESC press.
+  const handleFullscreenChange = useCallback(() => {
+    const isFullscreen = document.fullscreenElement !== null;
+    if (!isFullscreen && isStarted) {
+      navigate(-1);
+    }
+  }, [navigate, isStarted]);
+
+  useEffect(() => {
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      if (instructionTimeoutRef.current) {
+        clearTimeout(instructionTimeoutRef.current);
+      }
+    };
+  }, [handleFullscreenChange]);
+
+  useEffect(() => {
+    // When the component unmounts, exit fullscreen if it's active.
+    return () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!gameId) {
@@ -44,80 +76,102 @@ const PlayPage: React.FC = () => {
 
   const handleStart = async () => {
     setError(null);
-    setIsSubmitting(true);
 
+    // Read all config from .env file, providing sensible defaults.
     const instanceIp = import.meta.env.VITE_INSTANCE_IP;
-    const streamUrl = import.meta.env.VITE_STREAM_URL;
+    const agentPort = import.meta.env.VITE_AGENT_PORT || '5001';
+    const streamPort = import.meta.env.VITE_STREAM_PORT || '8080';
+    const streamPath = import.meta.env.VITE_STREAM_PATH_AND_QUERY || '/?ui=none';
 
     if (!instanceIp || instanceIp.includes("YOUR_INSTANCE_IP_HERE")) {
       setError("Xatolik: Instance IP manzili .env faylida ko'rsatilmagan. .env.example fayliga qarang.");
-      setIsSubmitting(false);
       return;
     }
 
-    if (!streamUrl || streamUrl.includes("your_token_here")) {
-      setError("Xatolik: To'liq stream URL manzili (token bilan) .env faylida ko'rsatilmagan.");
-      setIsSubmitting(false);
-      return;
-    }
+    if (!containerRef.current) return;
 
-    const agentUrl = `http://${instanceIp}:5001/launch`;
+    // "One-click" flow:
+    containerRef.current.requestFullscreen().then(() => {
+      const agentUrl = `http://${instanceIp}:${agentPort}/launch`;
+      const newStreamUrl = `http://${instanceIp}:${streamPort}${streamPath}`;
 
-    try {
-      const response = await fetch(agentUrl, {
+      setStreamUrl(newStreamUrl);
+      setIsStarted(true);
+      setShowInstructions(true);
+      instructionTimeoutRef.current = setTimeout(() => setShowInstructions(false), 4000);
+
+      // Send command to agent in the background.
+      fetch(agentUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ app_id: gameId }),
+      }).then(response => {
+        if (!response.ok) {
+          response.json().then(errorData => {
+            setError(`Agentga buyruq yuborishda xatolik: ${errorData.message || 'Noma\\'lum xato'}`);
+          }).catch(() => {
+            setError('Agentga buyruq yuborishda xatolik: Javobni o\\'qib bo\\'lmadi.');
+          });
+        } else {
+          console.log('Launch command sent successfully.');
+        }
+      }).catch(err => {
+        setError(`Agent bilan bog'lanishda xatolik: ${err.message}`);
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Agentdan xatolik keldi.');
-      }
-
-      console.log('Launch command sent successfully. Redirecting...');
-      // On success, redirect the browser to the stream URL.
-      window.location.href = streamUrl;
-
-    } catch (err: any) {
-      console.error('Error launching game:', err);
-      setError(`Instance bilan bog'lanib bo'lmadi. Ishlayotganiga ishonch hosil qiling. Xato: ${err.message}`);
-      setIsSubmitting(false);
-    }
+    }).catch(err => {
+      console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      setError(`To'liq ekranga o'tib bo'lmadi. Brauzer ruxsatlarini tekshiring.`);
+    });
   };
 
   if (isLoading) {
-    return (
-      <div className="w-screen h-screen flex items-center justify-center bg-black text-white">
-        Loading...
-      </div>
-    );
+    return <div className="w-screen h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
   }
 
   return (
     <div
+      ref={containerRef}
       className="w-screen h-screen bg-cover bg-center flex items-center justify-center"
       style={{
-        backgroundImage: `url(${backgroundImage})`,
+        backgroundImage: !isStarted ? `url(${backgroundImage})` : 'none',
         backgroundColor: 'black'
       }}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div className="relative z-10 text-center">
-        <h1 className="text-5xl font-bold text-white mb-8 drop-shadow-lg">{game?.title}</h1>
-        <button
-          onClick={handleStart}
-          className="bg-theme-gradient text-white font-bold text-2xl rounded-lg px-12 py-6 hover-glow transition-all shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Boshlanmoqda...' : 'Boshlash'}
-        </button>
-        {error && (
-          <p className="text-red-500 mt-4 bg-black/50 p-2 rounded">{error}</p>
-        )}
-      </div>
+      {!isStarted ? (
+        <>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative z-10 text-center">
+            <h1 className="text-5xl font-bold text-white mb-8 drop-shadow-lg">{game?.title}</h1>
+            <button
+              onClick={handleStart}
+              className="bg-theme-gradient text-white font-bold text-2xl rounded-lg px-12 py-6 hover-glow transition-all shadow-lg transform hover:scale-105"
+            >
+              Boshlash
+            </button>
+            {error && <p className="text-red-500 mt-4 bg-black/50 p-2 rounded">{error}</p>}
+          </div>
+        </>
+      ) : (
+        <>
+          <iframe
+            src={streamUrl}
+            title="Selkies Stream"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            allow="fullscreen; gamepad; microphone; camera"
+          />
+          {showInstructions && (
+            <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-md transition-opacity duration-500 animate-pulse">
+              To'liq ekrandan chiqish uchun ESC tugmasini bosing
+            </div>
+          )}
+          {error && (
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-red-800/80 text-white px-4 py-2 rounded-md">
+              {error}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
