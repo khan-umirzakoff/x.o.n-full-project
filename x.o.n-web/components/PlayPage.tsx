@@ -19,11 +19,10 @@ const PlayPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const instructionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // This is the corrected fullscreen handler that exits on a single ESC press.
+  // Corrected fullscreen handler that exits on a single ESC press.
   const handleFullscreenChange = useCallback(() => {
     const isFullscreen = document.fullscreenElement !== null;
     if (!isFullscreen && isStarted) {
-      // User has exited fullscreen, navigate back to the previous page.
       navigate(-1);
     }
   }, [navigate, isStarted]);
@@ -39,19 +38,20 @@ const PlayPage: React.FC = () => {
   }, [handleFullscreenChange]);
 
   useEffect(() => {
-    if (!gameId) {
-      navigate('/');
-      return;
-    }
-    // When the component unmounts (e.g., user navigates away), exit fullscreen
+    // When the component unmounts, exit fullscreen if it's active.
     return () => {
       if (document.fullscreenElement) {
         document.exitFullscreen();
       }
     };
-  }, [gameId, navigate]);
+  }, []);
 
   useEffect(() => {
+    if (!gameId) {
+      navigate('/');
+      return;
+    }
+
     const fetchGameData = async () => {
       try {
         setIsLoading(true);
@@ -70,12 +70,18 @@ const PlayPage: React.FC = () => {
         setIsLoading(false);
       }
     };
+
     fetchGameData();
   }, [gameId, navigate]);
 
   const handleStart = async () => {
     setError(null);
+
+    // Read all config from .env file, providing sensible defaults.
     const instanceIp = import.meta.env.VITE_INSTANCE_IP;
+    const agentPort = import.meta.env.VITE_AGENT_PORT || '5001';
+    const streamPort = import.meta.env.VITE_STREAM_PORT || '8080';
+    const streamPath = import.meta.env.VITE_STREAM_PATH_AND_QUERY || '/?ui=none';
 
     if (!instanceIp || instanceIp.includes("YOUR_INSTANCE_IP_HERE")) {
       setError("Xatolik: Instance IP manzili .env faylida ko'rsatilmagan. .env.example fayliga qarang.");
@@ -84,27 +90,23 @@ const PlayPage: React.FC = () => {
 
     if (!containerRef.current) return;
 
-    // The "one-click" flow:
-    // 1. Request fullscreen on the container immediately.
+    // "One-click" flow:
     containerRef.current.requestFullscreen().then(() => {
-      // 2. Once fullscreen is active, proceed with launching the game and showing the iframe.
-      const agentUrl = `http://${instanceIp}:5001/launch`;
-      const newStreamUrl = `http://${instanceIp}:8080?ui=none`;
+      const agentUrl = `http://${instanceIp}:${agentPort}/launch`;
+      const newStreamUrl = `http://${instanceIp}:${streamPort}${streamPath}`;
 
-      // Set the stream URL and update state to show the iframe
       setStreamUrl(newStreamUrl);
       setIsStarted(true);
       setShowInstructions(true);
       instructionTimeoutRef.current = setTimeout(() => setShowInstructions(false), 4000);
 
-      // 3. Send the command to the agent in the background.
+      // Send command to agent in the background.
       fetch(agentUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ app_id: gameId }),
       }).then(response => {
         if (!response.ok) {
-          // If the agent call fails, show an error but stay in the game view.
           response.json().then(errorData => {
             setError(`Agentga buyruq yuborishda xatolik: ${errorData.message || 'Noma\\'lum xato'}`);
           }).catch(() => {
