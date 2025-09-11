@@ -11,6 +11,7 @@ ARG DISTRIB_RELEASE
 
 LABEL maintainer="https://github.com/ehfd,https://github.com/danisla"
 
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ARG DEBIAN_FRONTEND=noninteractive
 # Configure rootless user environment for constrained conditions without escalated root privileges inside containers
 ARG TZ=UTC
