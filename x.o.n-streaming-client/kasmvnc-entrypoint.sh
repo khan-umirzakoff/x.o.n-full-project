@@ -23,7 +23,8 @@ mkdir -pm700 ~/.vnc
 (echo "${SELKIES_BASIC_AUTH_PASSWORD:-${PASSWD}}"; echo "${SELKIES_BASIC_AUTH_PASSWORD:-${PASSWD}}";) | kasmvncpasswd -u "${SELKIES_BASIC_AUTH_USER:-${USER}}" -ow ~/.kasmpasswd
 touch ~/.vnc/.de-was-selected ~/.vnc/kasmvnc.yaml
 export KASMVNC_DISPLAY="${KASMVNC_DISPLAY:-:21}"
-yq -i "
+if command -v yq >/dev/null 2>&1; then
+  yq -i "
 .command_line.prompt = false |
 .desktop.resolution.width = ${DISPLAY_SIZEW} |
 .desktop.resolution.height = ${DISPLAY_SIZEH} |
@@ -34,11 +35,13 @@ yq -i "
 .network.interface = \"127.0.0.1\" |
 .network.websocket_port = ${SELKIES_PORT-8081} |
 .network.ssl.require_ssl = $(echo ${SELKIES_ENABLE_HTTPS-false} | tr '[:upper:]' '[:lower:]') |
-.network.udp.public_ip = \"${TURN_EXTERNAL_IP-$(dig -4 TXT +short @ns1.google.com o-o.myaddr.l.google.com 2>/dev/null | { read output; if [ -z "$output" ] || echo "$output" | grep -q '^;;'; then exit 1; else echo "$(echo $output | sed 's,\",,g')"; fi } || dig -6 TXT +short @ns1.google.com o-o.myaddr.l.google.com 2>/dev/null | { read output; if [ -z "$output" ] || echo "$output" | grep -q '^;;'; then exit 1; else echo "[$(echo $output | sed 's,\",,g')]"; fi } || hostname -I 2>/dev/null | awk '{print $1; exit}' || echo '127.0.0.1')}\"
-" ~/.vnc/kasmvnc.yaml
+.network.udp.public_ip = \"${TURN_EXTERNAL_IP-$(dig -4 TXT +short @ns1.google.com o-o.myaddr.l.google.com 2>/dev/null | { read output; if [ -z \"$output\" ] || echo \"$output\" | grep -q '^;;'; then exit 1; else echo \"$(echo $output | sed 's,\\\",,g')\"; fi } || dig -6 TXT +short @ns1.google.com o-o.myaddr.l.google.com 2>/dev/null | { read output; if [ -z \"$output\" ] || echo \"$output\" | grep -q '^;;'; then exit 1; else echo \"[$(echo $output | sed 's,\\\",,g')]\"; fi } || hostname -I 2>/dev/null | awk '{print $1; exit}' || echo '127.0.0.1')}\"" ~/.vnc/kasmvnc.yaml || true
 
-if [ -n "${SELKIES_HTTPS_CERT}" ]; then yq -i ".network.ssl.pem_certificate = \"${SELKIES_HTTPS_CERT-/etc/ssl/certs/ssl-cert-snakeoil.pem}\"" ~/.vnc/kasmvnc.yaml; fi
-if [ -n "${SELKIES_HTTPS_KEY}" ]; then yq -i ".network.ssl.pem_key = \"${SELKIES_HTTPS_KEY-/etc/ssl/private/ssl-cert-snakeoil.key}\"" ~/.vnc/kasmvnc.yaml; fi
+  [ -n "${SELKIES_HTTPS_CERT}" ] && yq -i ".network.ssl.pem_certificate = \"${SELKIES_HTTPS_CERT-/etc/ssl/certs/ssl-cert-snakeoil.pem}\"" ~/.vnc/kasmvnc.yaml || true
+  [ -n "${SELKIES_HTTPS_KEY}" ] && yq -i ".network.ssl.pem_key = \"${SELKIES_HTTPS_KEY-/etc/ssl/private/ssl-cert-snakeoil.key}\"" ~/.vnc/kasmvnc.yaml || true
+else
+  echo "[WARN] 'yq' topilmadi, ~/.vnc/kasmvnc.yaml sozlamalari o'tkazib yuborildi. KasmVNC standart parametrlar bilan ishga tushadi." >&2
+fi
 
 if [ "$(echo ${SELKIES_ENABLE_RESIZE} | tr '[:upper:]' '[:lower:]')" = "true" ]; then export KASMVNC_PROXY_FLAG="${KASMVNC_PROXY_FLAG} -r"; fi
 
@@ -46,25 +49,38 @@ if [ "$(echo ${SELKIES_ENABLE_RESIZE} | tr '[:upper:]' '[:lower:]')" = "true" ];
 echo 'Waiting for X Socket' && until [ -S "/tmp/.X11-unix/X${DISPLAY#*:}" ]; do sleep 0.5; done && echo 'X Server is ready'
 
 # Configure NGINX
+# Prefer /tmp for NGINX temp paths when running as non-root
+mkdir -pm755 /tmp/nginx /tmp/nginx/body /tmp/nginx/proxy /tmp/nginx/fastcgi /tmp/nginx/uwsgi /tmp/nginx/scgi || true
+chown -R "$(id -u):$(id -g)" /tmp/nginx || true
+echo "client_body_temp_path /tmp/nginx/body 1 2;
+proxy_temp_path /tmp/nginx/proxy;
+fastcgi_temp_path /tmp/nginx/fastcgi;
+uwsgi_temp_path /tmp/nginx/uwsgi;
+scgi_temp_path /tmp/nginx/scgi;" | tee /etc/nginx/conf.d/temp_paths.conf > /dev/null || true
+
+# Ensure runtime directories for non-root nginx (best effort)
+mkdir -pm755 /var/lib/nginx /var/lib/nginx/body /var/lib/nginx/proxy /var/lib/nginx/fastcgi /var/lib/nginx/uwsgi /var/lib/nginx/scgi || true
+chown -R "$(id -u):$(id -g)" /var/lib/nginx || true
+
 if [ "$(echo ${SELKIES_ENABLE_BASIC_AUTH} | tr '[:upper:]' '[:lower:]')" != "false" ]; then htpasswd -bcm "${XDG_RUNTIME_DIR}/.htpasswd" "${SELKIES_BASIC_AUTH_USER:-${USER}}" "${SELKIES_BASIC_AUTH_PASSWORD:-${PASSWD}}"; fi
 echo "# Selkies KasmVNC NGINX Configuration
 server {
     access_log /dev/stdout;
     error_log /dev/stderr;
-    listen ${NGINX_PORT:-8080} $(if [ \"$(echo ${SELKIES_ENABLE_HTTPS} | tr '[:upper:]' '[:lower:]')\" = \"true\" ]; then echo -n "ssl"; fi);
-    listen [::]:${NGINX_PORT:-8080} $(if [ \"$(echo ${SELKIES_ENABLE_HTTPS} | tr '[:upper:]' '[:lower:]')\" = \"true\" ]; then echo -n "ssl"; fi);
+    listen ${NGINX_PORT:-8080} $(if [ \"$(echo ${SELKIES_ENABLE_HTTPS} | tr '[:upper:]' '[:lower:]')\" = \"true\" ]; then echo -n \"ssl\"; fi);
+    listen [::]:${NGINX_PORT:-8080} $(if [ \"$(echo ${SELKIES_ENABLE_HTTPS} | tr '[:upper:]' '[:lower:]')\" = \"true\" ]; then echo -n \"ssl\"; fi);
     ssl_certificate ${SELKIES_HTTPS_CERT-/etc/ssl/certs/ssl-cert-snakeoil.pem};
     ssl_certificate_key ${SELKIES_HTTPS_KEY-/etc/ssl/private/ssl-cert-snakeoil.key};
     $(if [ \"$(echo ${SELKIES_ENABLE_BASIC_AUTH} | tr '[:upper:]' '[:lower:]')\" != \"false\" ]; then echo "auth_basic \"Selkies\";"; echo -n "    auth_basic_user_file ${XDG_RUNTIME_DIR}/.htpasswd;"; fi)
 
     location / {
-        proxy_set_header        Upgrade \$http_upgrade;
+        proxy_set_header        Upgrade $http_upgrade;
         proxy_set_header        Connection \"upgrade\";
 
-        proxy_set_header        Host \$host;
+        proxy_set_header        Host $host;
         proxy_set_header        X-Real-IP 127.0.0.1;
         proxy_set_header        X-Forwarded-For 127.0.0.1;
-        proxy_set_header        X-Forwarded-Proto \$scheme;
+        proxy_set_header        X-Forwarded-Proto $scheme;
 
         proxy_http_version      1.1;
         proxy_read_timeout      3600s;
@@ -74,9 +90,20 @@ server {
 
         client_max_body_size    10M;
 
-        proxy_pass http$(if [ \"$(echo ${SELKIES_ENABLE_HTTPS} | tr '[:upper:]' '[:lower:]')\" = \"true\" ]; then echo -n "s"; fi)://localhost:${SELKIES_PORT:-8081};
+        proxy_pass http$(if [ \"$(echo ${SELKIES_ENABLE_HTTPS} | tr '[:upper:]' '[:lower:]')\" = \"true\" ]; then echo -n \"s\"; fi)://localhost:${SELKIES_PORT:-8081};
+    }
+
+    # Simple health endpoint for Docker healthcheck
+    location /health {
+        add_header Content-Type text/plain;
+        return 200 'ok';
     }
 }" | tee /etc/nginx/sites-available/default > /dev/null
+
+# Ensure the site is enabled (Debian layout)
+if [ ! -e /etc/nginx/sites-enabled/default ]; then
+  ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default || true
+fi
 
 # Run KasmVNC
 if ls ~/.vnc/*\:"${KASMVNC_DISPLAY#*:}".pid >/dev/null 2>&1; then kasmvncserver -kill "${KASMVNC_DISPLAY}"; fi

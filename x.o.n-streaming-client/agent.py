@@ -50,6 +50,10 @@ def launch_game():
         logging.error(f"Failed to launch game {app_id}: {e}")
         return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok", "service": "game-agent"}), 200
+
 if __name__ == '__main__':
     # Listens on all available network interfaces.
     # The port should be exposed in the Docker configuration.

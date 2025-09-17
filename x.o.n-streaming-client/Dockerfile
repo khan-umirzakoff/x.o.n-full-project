@@ -8,6 +8,14 @@ ARG DISTRIB_RELEASE=24.04
 FROM ${DISTRIB_IMAGE}:${DISTRIB_RELEASE}
 ARG DISTRIB_IMAGE
 ARG DISTRIB_RELEASE
+# Harden APT against flaky DNS/mirrors: retries, force IPv4, and use mirror list
+RUN set -eux; \
+    printf 'Acquire::Retries "5";\nAcquire::http::No-Cache "true";\nAcquire::https::No-Cache "true";\nAcquire::http::Timeout "30";\nAcquire::ftp::Timeout "30";\n' > /etc/apt/apt.conf.d/99retries; \
+    printf 'Acquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99force-ipv4; \
+    if [ -f /etc/apt/sources.list ]; then \
+      sed -i -e 's|http://archive.ubuntu.com/ubuntu|mirror://mirrors.ubuntu.com/mirrors.txt|g' \
+             -e 's|http://security.ubuntu.com/ubuntu|mirror://mirrors.ubuntu.com/mirrors.txt|g' /etc/apt/sources.list; \
+    fi
 
 LABEL maintainer="https://github.com/ehfd,https://github.com/danisla"
 
@@ -18,7 +26,6 @@ ENV PASSWD=mypasswd
 RUN apt-get clean && apt-get update && apt-get dist-upgrade -y && apt-get install --no-install-recommends -y \
         apt-utils \
         dbus-user-session \
-        fakeroot \
         fuse \
         kmod \
         locales \
@@ -31,7 +38,7 @@ RUN apt-get clean && apt-get update && apt-get dist-upgrade -y && apt-get instal
     ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime && echo "${TZ}" > /etc/timezone && \
     # Only use sudo-root for root-owned directory (/dev, /proc, /sys) or user/group permission operations, not for apt-get installation or file/directory operations
     mv -f /usr/bin/sudo /usr/bin/sudo-root && \
-    ln -snf /usr/bin/fakeroot /usr/bin/sudo && \
+    ln -snf /usr/bin/sudo-root /usr/bin/sudo && \
     groupadd -g 1000 ubuntu || echo 'Failed to add ubuntu group' && \
     useradd -ms /bin/bash ubuntu -u 1000 -g 1000 || echo 'Failed to add ubuntu user' && \
     usermod -a -G adm,audio,cdrom,dialout,dip,fax,floppy,games,input,lp,plugdev,render,ssl-cert,sudo,tape,tty,video,voice ubuntu && \
@@ -47,9 +54,7 @@ ENV LANG="en_US.UTF-8"
 ENV LANGUAGE="en_US:en"
 ENV LC_ALL="en_US.UTF-8"
 
-USER 1000
-# Use BUILDAH_FORMAT=docker in buildah
-SHELL ["/usr/bin/fakeroot", "--", "/bin/sh", "-c"]
+USER 0
 
 # Install operating system libraries or packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
@@ -83,6 +88,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
         coturn \
         jq \
         python3 \
+        python3-venv \
         python3-cups \
         python3-numpy \
         nano \
@@ -229,7 +235,13 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
         libglvnd0:i386 \
         libglx0:i386 \
         libglu1:i386 \
-        libsm6:i386; fi && \
+        libsm6:i386 \
+        # Extra 32-bit runtime libs commonly needed by Steam/Proton titles
+        libasound2:i386 \
+        libpulse0:i386 \
+        libopenal1:i386 \
+        libfreetype6:i386 \
+        libudev1:i386; fi && \
     # Install nvidia-vaapi-driver, requires the kernel parameter `nvidia_drm.modeset=1` set to run correctly
     if [ "$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '\"')" \> "20.04" ]; then \
     apt-get update && apt-get install --no-install-recommends -y \
@@ -269,6 +281,21 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}/usr/local/nvidia/li
 ENV NVIDIA_VISIBLE_DEVICES=all
 # All NVIDIA driver capabilities should preferably be used, check `NVIDIA_DRIVER_CAPABILITIES` inside the container if things do not work
 ENV NVIDIA_DRIVER_CAPABILITIES=all
+# Optional: preinstall NVIDIA user-space driver components at build time; leave ARG empty to skip
+ARG NVIDIA_DRIVER_VERSION=""
+RUN if [ -n "${NVIDIA_DRIVER_VERSION}" ]; then \
+    NVIDIA_DRIVER_ARCH="$(dpkg --print-architecture | sed -e 's/arm64/aarch64/' -e 's/armhf/32bit-ARM/' -e 's/i.*86/x86/' -e 's/amd64/x86_64/' -e 's/unknown/x86_64/')" && \
+    cd /tmp && \
+    curl -fsSL -O "https://international.download.nvidia.com/XFree86/Linux-${NVIDIA_DRIVER_ARCH}/${NVIDIA_DRIVER_VERSION}/NVIDIA-Linux-${NVIDIA_DRIVER_ARCH}-${NVIDIA_DRIVER_VERSION}.run" || \
+    curl -fsSL -O "https://international.download.nvidia.com/tesla/${NVIDIA_DRIVER_VERSION}/NVIDIA-Linux-${NVIDIA_DRIVER_ARCH}-${NVIDIA_DRIVER_VERSION}.run" || true && \
+    if [ -f "/tmp/NVIDIA-Linux-${NVIDIA_DRIVER_ARCH}-${NVIDIA_DRIVER_VERSION}.run" ]; then \
+      sh "NVIDIA-Linux-${NVIDIA_DRIVER_ARCH}-${NVIDIA_DRIVER_VERSION}.run" -x && \
+      cd "NVIDIA-Linux-${NVIDIA_DRIVER_ARCH}-${NVIDIA_DRIVER_VERSION}" && \
+      ./nvidia-installer --silent --no-kernel-module --install-compat32-libs --no-nouveau-check --no-nvidia-modprobe --no-systemd --no-rpms --no-backup --no-check-for-alternate-installs && \
+      cd /tmp; \
+    fi && \
+    rm -rf /tmp/NVIDIA*; \
+  fi
 # Disable VSYNC for NVIDIA GPUs
 ENV __GL_SYNC_TO_VBLANK=0
 # Set default DISPLAY environment
@@ -516,7 +543,12 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
     apt-get update && \
     echo "steam steam/question select \"I AGREE\"" | debconf-set-selections && \
     echo "steam steam/license note ''" | debconf-set-selections && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends steam; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends steam && \
+    # Preinstall Proton-GE system-wide so it is available without user caches
+    mkdir -pm755 /usr/share/steam/compatibilitytools.d && \
+    PROTON_GE_TAG="$(curl -fsSL "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest" | jq -r '.tag_name')" && \
+    cd /tmp && curl -fsSL -o GE-Proton.tar.gz "https://github.com/GloriousEggroll/proton-ge-custom/releases/download/${PROTON_GE_TAG}/${PROTON_GE_TAG}.tar.gz" && \
+    tar -xzf GE-Proton.tar.gz -C /usr/share/steam/compatibilitytools.d && rm -f GE-Proton.tar.gz; \
     fi
 
 # Install latest Selkies (https://github.com/selkies-project/selkies) build, Python application, and web application, should be consistent with Selkies documentation
@@ -570,7 +602,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 # Create and activate a Python virtual environment
 ENV VENV_PATH=/opt/venv
-RUN python3 -m venv ${VENV_PATH} && \
+RUN python3 -m venv --system-site-packages ${VENV_PATH} && \
     chown -R ubuntu:ubuntu ${VENV_PATH}
 ENV PATH="${VENV_PATH}/bin:${PATH}"
 
@@ -596,6 +628,7 @@ ENV PATH="${PATH:+${PATH}:}/usr/lib/rustdesk"
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}/usr/lib/rustdesk/lib"
 
 # Add custom packages right below this comment, or use FROM in a new container and replace entrypoint.sh or supervisord.conf, and set ENTRYPOINT to /usr/bin/supervisord
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
 
 # Copy scripts and configurations used to start the container with `--chown=1000:1000`
 COPY --chown=1000:1000 entrypoint.sh /etc/entrypoint.sh
@@ -604,6 +637,8 @@ COPY --chown=1000:1000 selkies-gstreamer-entrypoint.sh /etc/selkies-gstreamer-en
 RUN chmod -f 755 /etc/selkies-gstreamer-entrypoint.sh
 COPY --chown=1000:1000 kasmvnc-entrypoint.sh /etc/kasmvnc-entrypoint.sh
 RUN chmod -f 755 /etc/kasmvnc-entrypoint.sh
+# Normalize line endings to LF to avoid "required file not found" on Windows-based builds
+RUN sed -i -e 's/\r$//' /etc/entrypoint.sh /etc/selkies-gstreamer-entrypoint.sh /etc/kasmvnc-entrypoint.sh
 COPY --chown=1000:1000 supervisord.conf /etc/supervisord.conf
 RUN chmod -f 755 /etc/supervisord.conf
 
@@ -662,4 +697,4 @@ WORKDIR /home/ubuntu
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/bin/supervisord"]
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
