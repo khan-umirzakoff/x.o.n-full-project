@@ -18,7 +18,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
         (async () => {
             const { getImageSrc } = await import('../utils/imageUtils');
             const src = await getImageSrc(game.title, game.image);
-            if (!canceled) setImageSrc(src);
+            // Bo'sh string bo'lsa, null qo'yamiz
+            if (!canceled) setImageSrc(src || '');
         })();
         return () => { canceled = true; };
     }, [game.title, game.image]);
@@ -56,7 +57,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
                         <div className="w-8 h-8 border-2 border-outline border-t-primary rounded-full animate-spin"></div>
                     </div>
                 )}
-{imageError ? (
+{imageError || !imageSrc ? (
   <div className="w-full h-full bg-black flex items-center justify-center p-4">
     <div className="text-center font-orbitron text-white text-xl font-bold select-none">
       X.O.N

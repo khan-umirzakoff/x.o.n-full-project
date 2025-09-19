@@ -1,0 +1,4 @@
+services:
+  egl:
+    volumes:
+      - ./gst-web:/opt/gst-web:ro

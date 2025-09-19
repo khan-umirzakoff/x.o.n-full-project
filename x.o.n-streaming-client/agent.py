@@ -36,7 +36,9 @@ def launch_game():
             logging.error(f"Invalid app_id format: {app_id}")
             return jsonify({"status": "error", "message": "Invalid app_id: Must be a number."}), 400
 
-        command = f"steam steam://run/{app_id}"
+        # Steam executable'ning to'g'ri yo'li
+        steam_path = "/home/ubuntu/.steam/debian-installation/ubuntu12_32/steam"
+        command = f"{steam_path} steam://run/{app_id}"
         logging.info(f"Executing command: {command}")
 
         # Using Popen to launch the game in a non-blocking way.
