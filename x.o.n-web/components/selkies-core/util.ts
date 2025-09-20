@@ -1,64 +1,60 @@
-export class Queue {
-    /**
-     * @constructor
-     * @param {Array}
-     *    Video element to attach events to
-     */
-    constructor(...elements) {
-        /**
-         * @type {Array}
-         */
-        this.items = [];
+// A generic Queue class to handle collections of any type.
+export class Queue<T> {
+  private items: T[];
 
-        this.enqueue(...elements);
-    }
+  constructor(...elements: T[]) {
+    this.items = [];
+    this.enqueue(...elements);
+  }
 
-    enqueue(...elements) {
-        elements.forEach(element => this.items.push(element));
-    }
+  enqueue(...elements: T[]): void {
+    elements.forEach((element) => this.items.push(element));
+  }
 
-    dequeue(count=1) {
-        return this.items.splice(0, count)[0];
-    }
+  dequeue(count = 1): T | undefined {
+    return this.items.splice(0, count)[0];
+  }
 
-    size() {
-        return this.items.length;
-    }
+  size(): number {
+    return this.items.length;
+  }
 
-    isEmpty() {
-        return this.items.length===0;
-    }
+  isEmpty(): boolean {
+    return this.items.length === 0;
+  }
 
-    toArray() {
-        return [...this.items]
-    }
+  toArray(): T[] {
+    return [...this.items];
+  }
 
-    remove(element) {
-        var index = this.items.indexOf(element)
-        this.items.splice(index, 1)
+  remove(element: T): void {
+    const index = this.items.indexOf(element);
+    if (index > -1) {
+      this.items.splice(index, 1);
     }
+  }
 
-    find(element) {
-        return this.items.indexOf(element) == -1 ? false: true;
-    }
+  find(element: T): boolean {
+    return this.items.indexOf(element) !== -1;
+  }
 
-    clear(){
-        this.items.length = 0;
-    }
+  clear(): void {
+    this.items.length = 0;
+  }
 }
 
 // Converts given string to base64 encoded string with UTF-8 format
-export function stringToBase64(text) {
-    var bytes = new TextEncoder().encode(text);
-    const binString = Array.from(bytes, (byte) =>
-      String.fromCodePoint(byte),
-    ).join("");
-    return btoa(binString);
+export function stringToBase64(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  const binString = Array.from(bytes, (byte) =>
+    String.fromCodePoint(byte)
+  ).join('');
+  return btoa(binString);
 }
 
 // Converts given base64 UTF-8 format encoded string to its original form
-export function base64ToString(base64) {
-    var stringBytes = atob(base64);
-    var bytes = Uint8Array.from(stringBytes, (m) => m.codePointAt(0));
-    return new TextDecoder().decode(bytes);
+export function base64ToString(base64: string): string {
+  const stringBytes = atob(base64);
+  const bytes = Uint8Array.from(stringBytes, (m) => m.codePointAt(0) as number);
+  return new TextDecoder().decode(bytes);
 }
