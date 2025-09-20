@@ -253,3 +253,35 @@ body {
     transform: translateX(100%) skewX(-25deg);
   }
 }
+
+/* Background panning animation for loading state */
+.bg-pan {
+  background-size: 115% auto !important;
+  animation: bg-pan-anim 12s ease-in-out infinite alternate;
+}
+@keyframes bg-pan-anim {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+/* Shimmer loading bar */
+.loading-progress {
+  position: relative;
+  width: 280px;
+  height: 10px;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+  margin: 0 auto;
+}
+.loading-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.05) 100%);
+  transform: translateX(-100%);
+  animation: shimmer 1.6s infinite;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
