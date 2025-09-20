@@ -44,7 +44,7 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
     }
 
     const signalling = new WebRTCSignalling(signallingUrl);
-    const webrtc = new WebRTCPlayer(signalling, videoRef.current, 1);
+    const webrtc = new WebRTCPlayer(signalling, videoRef.current);
     webrtcRef.current = webrtc;
 
     webrtc.onstatus = (msg: string) => setStatus(msg);
