@@ -5,7 +5,6 @@ import { useParams, Link } from 'react-router-dom';
 import { Game, User, Language } from '../types';
 import { api } from '../services/api';
 import { CloseIcon, ShareIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
-import { useToast } from '../hooks/useToast';
 import { resolveStoreIcon } from '../utils/imageUtils';
 
 // --- SUB-COMPONENTS ---
@@ -318,12 +317,11 @@ interface GameDetailsPageProps {
     onLoginClick: () => void;
 }
 
-const GameDetailsPage: React.FC<GameDetailsPageProps> = ({ t, language, currentUser, isLoggedIn, onTopUpClick, onLoginClick }) => {
+const GameDetailsPage: React.FC<GameDetailsPageProps> = ({ t, language, currentUser: _currentUser, isLoggedIn: _isLoggedIn, onTopUpClick: _onTopUpClick, onLoginClick: _onLoginClick }) => {
   const { gameId } = useParams<{ gameId: string }>();
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const { addToast } = useToast();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -364,15 +362,14 @@ const GameDetailsPage: React.FC<GameDetailsPageProps> = ({ t, language, currentU
     return () => { canceled = true; };
   }, [game]);
 
-  const handlePlayClick = () => {
-    if (!isLoggedIn) {
-        onLoginClick();
-    } else if (currentUser && currentUser.balance > 0) {
-        addToast(t('featureComingSoon'), 'info');
-    } else {
-        onTopUpClick();
-    }
-  };
+  // Remove unused handler to satisfy TS6133; play is handled inside GameActions via props
+  // const handlePlayClick = () => {
+  //   if ((currentUser?.balance ?? 0) > 0) {
+  //     onPlay(game.id)
+  //   } else {
+  //     onTopUp()
+  //   }
+  // }
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react() as any],
   test: {
     globals: true,
     environment: 'jsdom',
@@ -49,7 +49,7 @@ export default defineConfig({
         maxThreads: 4
       }
     },
-    reporter: ['verbose', 'json', 'html'],
+    reporters: ['default', 'verbose', 'json', 'html'],
     outputFile: {
       json: '__tests__/results/test-results.json',
       html: '__tests__/results/test-results.html'

@@ -239,7 +239,8 @@ export class LightningEffectValidator {
     
     // Render with bloom
     this.visualTester.simulateLightningRender(5, bloomIntensity, { x: 0, y: 0, z: 10 });
-    const _bloomSnapshot = this.visualTester.captureSnapshot('bloom');
+    // capture but don't assign to avoid unused var warning
+    this.visualTester.captureSnapshot('bloom');
     
     const comparison = this.visualTester.compareSnapshots('base', 'bloom');
     

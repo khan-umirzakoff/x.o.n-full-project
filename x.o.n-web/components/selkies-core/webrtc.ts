@@ -24,6 +24,8 @@ export class WebRTCPlayer {
   public ondatachannelopen: (() => void) | null;
   public ondatachannelclose: (() => void) | null;
   public onplaystreamrequired: (() => void) | null;
+  // INPUT lifecycle guard to avoid multiple attachments
+  private inputAttached: boolean;
 
   constructor(
     signalling: WebRTCSignalling,
@@ -46,6 +48,7 @@ export class WebRTCPlayer {
         this.send_channel.send(data);
       }
     });
+    this.inputAttached = false;
 
     // Initialize callbacks
     this.onstatus = null;
@@ -120,8 +123,22 @@ export class WebRTCPlayer {
     this._setStatus(`Peer data channel created: ${event.channel.label}`);
     this.send_channel = event.channel;
     this.send_channel.onmessage = this._onPeerDataChannelMessage;
-    this.send_channel.onopen = () => this.ondatachannelopen?.();
-    this.send_channel.onclose = () => this.ondatachannelclose?.();
+    this.send_channel.onopen = () => {
+      // Attach input listeners when data channel is ready to send
+      if (!this.inputAttached) {
+        this.input.attach();
+        this.inputAttached = true;
+      }
+      this.ondatachannelopen?.();
+    };
+    this.send_channel.onclose = () => {
+      // Detach input when channel closes
+      if (this.inputAttached) {
+        this.input.detach();
+        this.inputAttached = false;
+      }
+      this.ondatachannelclose?.();
+    };
   };
 
   private _onPeerDataChannelMessage = (event: MessageEvent) => {
@@ -152,6 +169,11 @@ export class WebRTCPlayer {
         this._setError(`Peer connection ${state}`);
         this.send_channel?.close();
         this._connected = false;
+        // Ensure input listeners are removed on disconnect-like states
+        if (this.inputAttached) {
+          this.input.detach();
+          this.inputAttached = false;
+        }
         break;
     }
   };
@@ -189,6 +211,7 @@ export class WebRTCPlayer {
 
   public disconnect() {
     this.input.detach();
+    this.inputAttached = false;
     this.send_channel?.close();
     this.peerConnection?.close();
     this.signalling.disconnect();

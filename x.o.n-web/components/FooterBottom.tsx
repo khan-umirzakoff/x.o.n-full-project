@@ -3,14 +3,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const socialIcons = [
-    { name: 'vk', src: '/assets/images/icons/social/vk.svg' },
-    { name: 'instagram', src: '/assets/images/icons/social/instagram.svg' },
-    { name: 'telegram', src: '/assets/images/icons/social/telegram.svg' },
-    { name: 'tiktok', src: '/assets/images/icons/social/tiktok.svg' },
-    { name: 'youtube', src: '/assets/images/icons/social/youtube.svg' },
-    { name: 'discord', src: '/assets/images/icons/social/discord.svg' },
-    { name: 'facebook', src: '/assets/images/icons/social/facebook.svg' },
-    { name: 'twitch', src: '/assets/images/icons/social/twitch.svg' },
+    { name: 'vk', src: '/assets/images/icons/social/vk.svg', href: 'https://vk.com' },
+    { name: 'instagram', src: '/assets/images/icons/social/instagram.svg', href: 'https://instagram.com' },
+    { name: 'telegram', src: '/assets/images/icons/social/telegram.svg', href: 'https://t.me' },
+    { name: 'tiktok', src: '/assets/images/icons/social/tiktok.svg', href: 'https://tiktok.com' },
+    { name: 'youtube', src: '/assets/images/icons/social/youtube.svg', href: 'https://youtube.com' },
+    { name: 'discord', src: '/assets/images/icons/social/discord.svg', href: 'https://discord.com' },
+    { name: 'facebook', src: '/assets/images/icons/social/facebook.svg', href: 'https://facebook.com' },
+    { name: 'twitch', src: '/assets/images/icons/social/twitch.svg', href: 'https://twitch.tv' },
 ];
 
 interface FooterBottomProps {

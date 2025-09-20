@@ -84,7 +84,7 @@ const mockWebGLContext = {
 };
 
 // Mock HTMLCanvasElement.getContext
-HTMLCanvasElement.prototype.getContext = vi.fn((contextType: string) => {
+(HTMLCanvasElement.prototype.getContext as any) = vi.fn((contextType: string) => {
   if (contextType === '2d') {
     return {
       clearRect: vi.fn(),
@@ -119,8 +119,8 @@ HTMLCanvasElement.prototype.getContext = vi.fn((contextType: string) => {
       globalCompositeOperation: 'source-over',
     };
   }
-  if (contextType === 'webgl' || contextType === 'experimental-webgl') {
-    return mockWebGLContext;
+  if (contextType === 'webgl' || contextType === 'webgl2') {
+    return mockWebGLContext as unknown as WebGLRenderingContext;
   }
   return null;
 });

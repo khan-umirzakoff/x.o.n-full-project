@@ -6,6 +6,7 @@
 import { Queue } from './util';
 import { GamepadManager } from './gamepad';
 
+
 /**
  * Helper function to keep track of attached event listeners.
  */
@@ -41,6 +42,8 @@ export class Input {
   x: number;
   y: number;
   cursorScaleFactor: number | null;
+  // Resize observer to recompute mapping when element size changes
+  private resizeObserver: ResizeObserver | null = null;
 
   onmenuhotkey: (() => void) | null;
   onfullscreenhotkey: (() => void) | null;
@@ -72,6 +75,7 @@ export class Input {
     this.x = 0;
     this.y = 0;
     this.cursorScaleFactor = null;
+    this.resizeObserver = null;
 
     this.onmenuhotkey = null;
     this.onfullscreenhotkey = this.enterFullscreen;
@@ -146,11 +150,21 @@ export class Input {
     if (event.type === 'mousemove' && !this.m) return;
 
     if (!document.pointerLockElement && this.mouseRelative) {
-      this.element.requestPointerLock().catch((e) => console.log('pointer lock failed: ', e));
+      try {
+        const ret = this.element.requestPointerLock();
+        (ret as any)?.catch?.((e: unknown) => console.log('pointer lock failed: ', e));
+      } catch (e) {
+        console.log('pointer lock failed: ', e);
+      }
     }
 
     if (down && event.button === 0 && event.ctrlKey && event.shiftKey) {
-      this.element.requestPointerLock().catch((e) => console.log('pointer lock failed: ', e));
+      try {
+        const ret = this.element.requestPointerLock();
+        (ret as any)?.catch?.((e: unknown) => console.log('pointer lock failed: ', e));
+      } catch (e) {
+        console.log('pointer lock failed: ', e);
+      }
       return;
     }
 
@@ -240,7 +254,12 @@ export class Input {
   _onFullscreenChange = () => {
     if (document.fullscreenElement) {
       if (document.pointerLockElement === null) {
-        this.element.requestPointerLock().catch((e) => console.log('pointer lock failed: ', e));
+        try {
+          const ret = this.element.requestPointerLock();
+          (ret as any)?.catch?.((e: unknown) => console.log('pointer lock failed: ', e));
+        } catch (e) {
+          console.log('pointer lock failed: ', e);
+        }
       }
       this.requestKeyboardLock();
     }
@@ -252,11 +271,17 @@ export class Input {
 
   attach = () => {
     this.listeners.push(addListener(this.element, 'resize', this._windowMath, this));
+    this.listeners.push(addListener(this.element, 'loadedmetadata', this._windowMath, this));
     this.listeners.push(addListener(document, 'pointerlockchange', this._pointerLock, this));
     if (this.element.parentElement) {
         this.listeners.push(addListener(this.element.parentElement, 'fullscreenchange', this._onFullscreenChange, this));
     }
     this.listeners.push(addListener(window, 'resize', this._windowMath, this));
+    // Observe size changes of the video element for responsive mapping
+    if ('ResizeObserver' in window && !this.resizeObserver) {
+      this.resizeObserver = new ResizeObserver(() => this._windowMath());
+      this.resizeObserver.observe(this.element);
+    }
     this.attach_context();
   };
 
@@ -286,6 +311,10 @@ export class Input {
 
   detach = () => {
     removeListeners(this.listeners);
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
     this.detach_context();
   };
 
@@ -306,7 +335,12 @@ export class Input {
   enterFullscreen = () => {
     if (!this.element) return;
     if (document.pointerLockElement === null) {
-      this.element.requestPointerLock().catch((e) => console.log('pointer lock failed: ', e));
+      try {
+        const ret = this.element.requestPointerLock();
+        (ret as any)?.catch?.((e: unknown) => console.log('pointer lock failed: ', e));
+      } catch (e) {
+        console.log('pointer lock failed: ', e);
+      }
     }
     if (document.fullscreenElement === null && this.element.parentElement) {
       this.element.parentElement.requestFullscreen().catch((e) => {

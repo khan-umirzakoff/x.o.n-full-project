@@ -1,7 +1,7 @@
 // FIX: Removed reference to 'vite/client' to resolve 'Cannot find type definition file' error. This is a workaround due to the inability to configure TypeScript via tsconfig.json.
 // The 'import.meta.glob' feature, which depends on these types, will now be accessed via a type assertion.
 
-import { Game, User, Language, Banner } from '../types';
+import { Game, Language, Banner } from '../types';
 import { sanitizeGameTitle } from '../utils/imageUtils';
 
 // --- Content-based games loader (MVP)

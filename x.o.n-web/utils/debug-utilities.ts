@@ -17,7 +17,7 @@ export interface DebugStats {
 
 export class DebugSystem {
     private scene: THREE.Scene;
-    private camera: THREE.Camera;
+    private _camera?: THREE.Camera; // optional until we need it explicitly
     private renderer: THREE.WebGLRenderer;
     private debugEnabled: boolean = false;
     
@@ -36,8 +36,10 @@ export class DebugSystem {
 
     constructor(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer) {
         this.scene = scene;
-        this.camera = camera;
+        this._camera = camera;
         this.renderer = renderer;
+        // Access once to mark as intentionally retained
+        void this._camera;
         this.debugGroup = new THREE.Group();
         this.debugGroup.name = 'DebugGroup';
         scene.add(this.debugGroup);

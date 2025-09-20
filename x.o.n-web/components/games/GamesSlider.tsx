@@ -54,7 +54,7 @@ const GamesSlider: React.FC<GamesSliderProps> = ({ t, currentUser, isLoggedIn, o
         onLoginClick();
         return;
       }
-      if (currentUser && currentUser.balance <= 0) {
+      if ((currentUser?.balance ?? 0) <= 0) {
         onTopUpClick();
         return;
       }
