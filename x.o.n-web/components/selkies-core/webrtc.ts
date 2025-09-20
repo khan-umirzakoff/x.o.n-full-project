@@ -42,6 +42,7 @@ export class WebRTCPlayer {
 
     this.input = new Input(this.element, (data: string) => {
       if (this._connected && this.send_channel?.readyState === 'open') {
+        console.log("Sending data:", data); // DEBUG LOG
         this.send_channel.send(data);
       }
     });
