@@ -1,6 +1,5 @@
 import { Input } from './input';
 import { WebRTCSignalling } from './signalling';
-import { base64ToString } from './util';
 
 // This is a simplified version of the WebRTCDemo class, focusing on the core logic
 // needed for the React component integration. The original's stats and debug
@@ -9,7 +8,6 @@ import { base64ToString } from './util';
 export class WebRTCPlayer {
   private signalling: WebRTCSignalling;
   private element: HTMLVideoElement;
-  private peer_id: number;
 
   public forceTurn: boolean;
   public rtcPeerConfig: RTCConfiguration;
@@ -29,12 +27,10 @@ export class WebRTCPlayer {
 
   constructor(
     signalling: WebRTCSignalling,
-    element: HTMLVideoElement,
-    peer_id: number
+    element: HTMLVideoElement
   ) {
     this.signalling = signalling;
     this.element = element;
-    this.peer_id = peer_id;
 
     this.forceTurn = false;
     this.rtcPeerConfig = {

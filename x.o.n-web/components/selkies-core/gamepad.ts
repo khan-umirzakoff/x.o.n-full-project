@@ -7,7 +7,6 @@ interface GamepadState {
 }
 
 export class GamepadManager {
-  private gamepad: Gamepad;
   public numButtons: number;
   public numAxes: number;
   private onButton: (gp_num: number, btn_num: number, val: number) => void;
@@ -20,7 +19,6 @@ export class GamepadManager {
     onButton: (gp_num: number, btn_num: number, val: number) => void,
     onAxis: (gp_num: number, axis_num: number, val: number) => void
   ) {
-    this.gamepad = gamepad;
     this.numButtons = gamepad.buttons.length;
     this.numAxes = gamepad.axes.length;
     this.onButton = onButton;

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { WebRTCSignalling } from '../selkies-core/signalling';
-import { WebRTCPlayer } from '../selkies-core/webrtc';
+import { WebRTCSignalling } from '../selkies-core/signalling.ts';
+import { WebRTCPlayer } from '../selkies-core/webrtc.ts';
 
 interface SelkiesPlayerProps {
   signallingUrl: string;
@@ -47,9 +47,9 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
     const webrtc = new WebRTCPlayer(signalling, videoRef.current, 1);
     webrtcRef.current = webrtc;
 
-    webrtc.onstatus = (msg) => setStatus(msg);
-    webrtc.onerror = (msg) => setErrorMsg(msg);
-    webrtc.onconnectionstatechange = (state) => {
+    webrtc.onstatus = (msg: string) => setStatus(msg);
+    webrtc.onerror = (msg: string) => setErrorMsg(msg);
+    webrtc.onconnectionstatechange = (state: RTCPeerConnectionState) => {
       setStatus(`Connection: ${state}`);
       if (state === 'failed' || state === 'disconnected' || state === 'closed') {
         setErrorMsg(`Connection ${state}`);
