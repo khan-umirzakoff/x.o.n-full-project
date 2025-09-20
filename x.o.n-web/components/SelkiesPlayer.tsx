@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { WebRTCSignalling } from '../selkies-core/signalling.ts';
-import { WebRTCPlayer } from '../selkies-core/webrtc.ts';
+import { WebRTCSignalling } from './selkies-core/signalling.ts';
+import { WebRTCPlayer } from './selkies-core/webrtc.ts';
 
 interface SelkiesPlayerProps {
   signallingUrl: string;
