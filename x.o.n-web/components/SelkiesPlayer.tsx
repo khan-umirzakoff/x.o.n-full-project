@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Input } from '../selkies-core/input';
+import { Input } from '../selkies-core/input.ts';
 
 interface SelkiesPlayerProps {
   signallingUrl: string;
