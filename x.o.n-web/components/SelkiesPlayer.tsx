@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Input } from '../selkies-core/input';
 
 interface SelkiesPlayerProps {
   signallingUrl: string;
@@ -70,6 +71,9 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
+  const dataChannelRef = useRef<RTCDataChannel | null>(null);
+  const inputRef = useRef<Input | null>(null);
+
   const [status, setStatus] = useState<string>('Initializing...');
   const [error, setError] = useState<string | null>(null);
   const [needsUserGesture, setNeedsUserGesture] = useState<boolean>(false);
@@ -83,11 +87,14 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
   }, [onError]);
 
   const cleanup = useCallback(() => {
+    inputRef.current?.detach();
+    inputRef.current = null;
     try { wsRef.current?.close(); } catch {}
     try { pcRef.current?.getSenders().forEach(s => s.track && s.track.stop()); } catch {}
     try { pcRef.current?.close(); } catch {}
     wsRef.current = null;
     pcRef.current = null;
+    dataChannelRef.current = null;
   }, []);
 
   const attemptPlay = useCallback(() => {
@@ -103,6 +110,12 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
       });
     }
   }, []);
+
+  const handlePointerLock = () => {
+    if (videoRef.current && document.pointerLockElement !== videoRef.current) {
+      videoRef.current.requestPointerLock().catch(e => console.error("Could not request pointer lock:", e));
+    }
+  };
 
   useEffect(() => {
     setCanReconnect(false);
@@ -136,10 +149,21 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
       }
     });
 
-    // Data channel will be created by server; handle incoming
     pc.addEventListener('datachannel', (event) => {
       const channel = event.channel;
-      channel.onopen = () => setStatus('DataChannel open');
+      dataChannelRef.current = channel;
+      channel.onopen = () => {
+        setStatus('DataChannel open');
+        if (videoRef.current) {
+          const input = new Input(videoRef.current, (data) => {
+            if (channel.readyState === 'open') {
+              channel.send(data);
+            }
+          });
+          input.attach();
+          inputRef.current = input;
+        }
+      };
       channel.onclose = () => setStatus('DataChannel closed');
       channel.onmessage = (ev) => {
         // TODO: parse messages like clipboard/system actions
@@ -175,7 +199,6 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
         }
         const msg = JSON.parse(event.data);
         if (msg.sdp) {
-          // Remote offer from server
           await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
           await preferH264Codecs(pc);
           const answer = await pc.createAnswer();
@@ -229,10 +252,10 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
       {error && (
         <div className="p-2 text-red-400 text-sm bg-black/60">{error}</div>
       )}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative" onClick={handlePointerLock}>
         <video
           ref={videoRef}
-          className="absolute inset-0 w-full h-full object-contain bg-black"
+          className="absolute inset-0 w-full h-full object-contain bg-black cursor-none"
           playsInline
           disablePictureInPicture
           onContextMenu={(e) => e.preventDefault()}
