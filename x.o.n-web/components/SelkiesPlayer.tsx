@@ -34,7 +34,14 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
 
   const handlePointerLock = () => {
     if (videoRef.current && document.pointerLockElement !== videoRef.current) {
-      videoRef.current.requestPointerLock().catch(e => console.error("Could not request pointer lock:", e));
+      try {
+        const ret = videoRef.current.requestPointerLock();
+        // Some browsers return void, some return a Promise-like
+        // If it's a promise, you may optionally attach catch
+        (ret as any)?.catch?.((e: any) => console.error("Could not request pointer lock:", e));
+      } catch (e) {
+        console.error("Could not request pointer lock:", e);
+      }
     }
   };
 

@@ -59,7 +59,7 @@ const Subscriptions: React.FC<SubscriptionsProps> = ({ t, onTopUpClick, currentU
             onLoginClick();
             return;
         }
-        if (currentUser && currentUser.balance > 0) {
+        if ((currentUser?.balance ?? 0) > 0) {
             navigate('/games');
         } else {
             onTopUpClick();

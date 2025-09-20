@@ -99,6 +99,6 @@ export interface BannerManifest {
 // Add types for the Guacamole library that will be loaded from a script tag.
 declare global {
   interface Window {
-    Guacamole: any;
+    Guacamole?: any;
   }
 }

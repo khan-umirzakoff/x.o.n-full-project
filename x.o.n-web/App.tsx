@@ -43,7 +43,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { auth, googleProvider } from './services/firebase';
 import { loggingService } from './services/loggingService';
 import Subscriptions from './components/home/Subscriptions';
-import { api } from './services/api';
+// import { api } from './services/api';
 
 type TranslationKey = keyof typeof translations.ENG;
 
@@ -258,9 +258,10 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleTopUp = async (amount: number) => {
-     if (!currentUser) return;
-     addToast('Top-up functionality is currently disabled.', 'info');
+  const handleTopUp = async (_amount: number) => {
+    if (!currentUser) return;
+    // TODO: implement top-up flow later
+    // Add a user-facing toast/notification integration here if available
   };
 
   const onLoginClick = () => setIsAuthModalOpen(true);
