@@ -67,7 +67,7 @@ const StatsHUD: React.FC<StatsHUDProps> = ({ stats, gpuStats, cpuStats }) => {
                 <HUDStat label="Avail. Bandwidth" value={bandwidth} />
                 <HUDStat label="Data Received" value={bytesReceived} />
                 <HUDStat label="Connection" value={connectionType} />
-            </section>
+            </Section>
             <Section title="Server">
                 <HUDStat label="CPU" value={cpuLoad} />
                 <HUDStat label="GPU" value={gpuLoad} />
