@@ -144,6 +144,15 @@ const Header: React.FC<HeaderProps> = ({
                                          </div>
                                          <ul className="py-1">
                                              <li>
+                                                 <Link
+                                                     to="/settings"
+                                                     onClick={() => setIsUserMenuOpen(false)}
+                                                     className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors"
+                                                 >
+                                                     {t('settings')}
+                                                 </Link>
+                                             </li>
+                                             <li>
                                                  <button
                                                      onClick={() => { onLogout(); setIsUserMenuOpen(false); }}
                                                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/20 transition-colors"

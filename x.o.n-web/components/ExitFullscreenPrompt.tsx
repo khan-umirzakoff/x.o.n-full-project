@@ -13,16 +13,16 @@ const ExitFullscreenPrompt: React.FC<ExitFullscreenPromptProps> = ({ onReturn, o
         <p className="text-gray-300 mb-6">Do you want to return to the game or quit the session?</p>
         <div className="flex justify-center space-x-4">
           <button
-            onClick={onReturn}
-            className="px-6 py-3 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors"
-          >
-            Return to Fullscreen
-          </button>
-          <button
             onClick={onQuit}
             className="px-6 py-3 rounded-lg bg-gray-600 text-white font-semibold hover:bg-gray-700 transition-colors"
           >
             Quit
+          </button>
+          <button
+            onClick={onReturn}
+            className="px-6 py-3 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors"
+          >
+            Return to Fullscreen
           </button>
         </div>
       </div>

@@ -37,6 +37,7 @@ import DownloadModal from './components/DownloadModal';
 import TopUpModal from './components/TopUpModal';
 import NotFoundPage from './components/NotFoundPage';
 import PlayPage from './components/PlayPage';
+import SettingsPage from './components/SettingsPage';
 import { Language, User } from './types';
 import { translations } from './i18n';
 import { useLocalStorage } from './hooks/useLocalStorage';
@@ -297,6 +298,7 @@ const AppContent: React.FC = () => {
           <Route path="nvidia-tech" element={<DownloadModal t={t} />} />
           <Route path="about-service" element={<AboutServicePage t={t} />} />
           <Route path="support" element={<SupportPage t={t} />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage t={t} />} />
         </Route>
         <Route path="/play/:gameId" element={<PlayPage />} />

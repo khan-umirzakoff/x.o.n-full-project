@@ -10,6 +10,7 @@ export const ru = {
   register: 'Регистрация',
   registerAndPlay: 'Начать играть',
   logout: 'Выйти',
+  settings: 'Настройки',
   // Auth Modal
   username: 'Имя пользователя',
   email: 'Электронная почта',

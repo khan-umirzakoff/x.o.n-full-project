@@ -36,6 +36,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const webrtcRef = useRef<WebRTCPlayer | null>(null);
   const hasConnectionStarted = useRef(false);
+  const hasSentInitialResolution = useRef(false);
   const statsIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const sendDataChannelMessage = useCallback((message: string) => {
@@ -44,14 +45,11 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
 
   // Fetch game data
   useEffect(() => {
-    if (!gameId) {
-      navigate('/');
-      return;
-    }
+    if (!gameId) navigate('/');
     const fetchGameData = async () => {
       try {
         setIsLoading(true);
-        const fetchedGame = await api.getGameById(gameId);
+        const fetchedGame = await api.getGameById(gameId!);
         if (fetchedGame) {
           setGame(fetchedGame);
           const wideImageSrc = await getImageSrc(fetchedGame.title, fetchedGame.wideImage || fetchedGame.image);
@@ -72,31 +70,22 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   // Auto-start agent connection
   useEffect(() => {
     if (isLoading || !game || hasConnectionStarted.current) return;
-
     hasConnectionStarted.current = true;
     setError(null);
-
     const instanceIp = import.meta.env.VITE_INSTANCE_IP as string | undefined;
     const agentPort = (import.meta.env.VITE_AGENT_PORT as string) || '5001';
     const streamPort = (import.meta.env.VITE_STREAM_PORT as string) || '8080';
     const appName = (import.meta.env.VITE_STREAM_APPNAME as string) || 'webrtc';
-
     if (!instanceIp || instanceIp.includes('YOUR_INSTANCE_IP_HERE')) {
       setError("Xatolik: Instance IP manzili .env faylida ko'rsatilmagan.");
       setConnectionStatus('failed');
       return;
     }
-
     const agentUrl = `http://${instanceIp}:${agentPort}/launch`;
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const wsUrl = `${protocol}://${instanceIp}:${streamPort}/${appName}/signalling/`;
-
     setConnectionStatus('agent-connecting');
-    fetch(agentUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ app_id: gameId }),
-    })
+    fetch(agentUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: gameId })})
       .then(async (response) => {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: "Noma'lum xato" }));
@@ -116,44 +105,26 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   // Setup WebRTC connection
   useEffect(() => {
     if (!signallingUrl || !videoRef.current) return;
-
     const signalling = new WebRTCSignalling(signallingUrl);
     const webrtc = new WebRTCPlayer(signalling, videoRef.current);
     webrtcRef.current = webrtc;
-
     webrtc.onstatus = (msg: string) => console.log('WebRTC Status:', msg);
-    webrtc.onerror = (msg: string) => {
-      setError(msg);
-      setConnectionStatus('failed');
-    };
+    webrtc.onerror = (msg: string) => { setError(msg); setConnectionStatus('failed'); };
     webrtc.onconnectionstatechange = (state: RTCPeerConnectionState) => {
       setConnectionStatus(state);
       if (state === 'connected') {
         statsIntervalRef.current = setInterval(async () => {
           const stats = await webrtcRef.current?.getConnectionStats();
-          if (stats) {
-            setStreamingStats(stats);
-          }
+          if (stats) setStreamingStats(stats);
         }, 1000);
       } else {
-        if (statsIntervalRef.current) {
-          clearInterval(statsIntervalRef.current);
-        }
-        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
-          setError(`Connection ${state}`);
-        }
+        if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
+        if (state === 'failed' || state === 'disconnected' || state === 'closed') setError(`Connection ${state}`);
       }
     };
-    webrtc.onplaystreamrequired = () => {
-      // This is expected, we will call playStream() from our GO button
-    };
-
+    webrtc.onplaystreamrequired = () => {};
     webrtc.connect();
-
-    return () => {
-      webrtc.disconnect();
-      webrtcRef.current = null;
-    };
+    return () => { webrtc.disconnect(); webrtcRef.current = null; };
   }, [signallingUrl]);
 
   const enterFullscreen = useCallback(() => {
@@ -162,9 +133,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     element.requestFullscreen().catch(e => console.error("Could not enter fullscreen:", e));
   }, []);
 
-  const handleGoClick = useCallback(() => {
-    enterFullscreen();
-  }, [enterFullscreen]);
+  const handleGoClick = useCallback(() => enterFullscreen(), [enterFullscreen]);
 
   const handlePointerLock = useCallback(() => {
     if (videoRef.current && document.pointerLockElement !== videoRef.current) {
@@ -173,28 +142,28 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   }, []);
 
   // --- Quality Control Effects ---
-  useEffect(() => {
-    if (isStreamPlaying) sendDataChannelMessage(`vb,${videoBitrate}`);
-  }, [videoBitrate, isStreamPlaying, sendDataChannelMessage]);
-
-  useEffect(() => {
-    if (isStreamPlaying) sendDataChannelMessage(`_arg_fps,${framerate}`);
-  }, [framerate, isStreamPlaying, sendDataChannelMessage]);
-
-  useEffect(() => {
-    if (isStreamPlaying) sendDataChannelMessage(`ab,${audioBitrate}`);
-  }, [audioBitrate, isStreamPlaying, sendDataChannelMessage]);
+  useEffect(() => { if (isStreamPlaying) sendDataChannelMessage(`vb,${videoBitrate}`); }, [videoBitrate, isStreamPlaying, sendDataChannelMessage]);
+  useEffect(() => { if (isStreamPlaying) sendDataChannelMessage(`_arg_fps,${framerate}`); }, [framerate, isStreamPlaying, sendDataChannelMessage]);
+  useEffect(() => { if (isStreamPlaying) sendDataChannelMessage(`ab,${audioBitrate}`); }, [audioBitrate, isStreamPlaying, sendDataChannelMessage]);
 
   // --- Resolution and Fullscreen Logic ---
-  const sendResolution = useCallback(() => {
-    const resolutionToSend = selectedResolution === 'auto'
-        ? `${window.screen.width}x${window.screen.height}`
-        : selectedResolution;
-
+  const sendResolution = useCallback((isInitial: boolean) => {
+    if (!isStreamPlaying && !isInitial) return;
+    let resolutionToSend: string;
+    if (isInitial || selectedResolution === 'auto') {
+        resolutionToSend = `${window.screen.width}x${window.screen.height}`;
+        if (selectedResolution === 'auto' && !isInitial) {
+            // If user re-selects auto, update the state to reflect it
+        } else if (isInitial) {
+            setSelectedResolution('auto');
+        }
+    } else {
+        resolutionToSend = selectedResolution;
+    }
     console.log(`Sending resolution: ${resolutionToSend}`);
     sendDataChannelMessage(`r,${resolutionToSend}`);
     sendDataChannelMessage(`s,${window.devicePixelRatio}`);
-  }, [selectedResolution, sendDataChannelMessage]);
+  }, [isStreamPlaying, selectedResolution, sendDataChannelMessage]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -203,49 +172,52 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
                 console.log('Entered fullscreen for the first time, playing stream and setting resolution.');
                 webrtcRef.current?.playStream();
                 setIsStreamPlaying(true);
-                requestAnimationFrame(sendResolution);
+                if (!hasSentInitialResolution.current) {
+                    requestAnimationFrame(() => sendResolution(true));
+                    hasSentInitialResolution.current = true;
+                }
             }
             setShowExitPrompt(false);
         } else {
             if (isStreamPlaying) {
                 console.log('Exited fullscreen.');
                 setShowExitPrompt(true);
+            } else if (hasConnectionStarted.current) {
+                // If we exit fullscreen before the stream was ever playing (e.g. from GO screen)
+                navigate(`/games/${gameId}`);
             }
         }
     };
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-  }, [isStreamPlaying, sendResolution, webrtcRef]);
+  }, [isStreamPlaying, sendResolution, webrtcRef, navigate, gameId]);
 
   useEffect(() => {
-    // This effect is for manual resolution changes from the dropdown
+    if (isStreamPlaying && !hasSentInitialResolution.current) {
+        // This case should not happen if flow is correct, but as a fallback
+        requestAnimationFrame(() => sendResolution(true));
+        hasSentInitialResolution.current = true;
+    }
     if (isStreamPlaying) {
-        sendResolution();
+        sendResolution(false);
     }
   }, [selectedResolution, isStreamPlaying, sendResolution]);
-
 
   // --- Clipboard Logic ---
   const enableClipboard = useCallback(() => {
     navigator.clipboard.readText()
-      .then(text => {
+      .then(() => {
         webrtcRef.current?.sendDataChannelMessage("cr");
         setClipboardStatus('enabled');
-        console.log('Clipboard access enabled.');
       })
-      .catch(err => {
-        console.error('Failed to enable clipboard:', err);
-        setError('Clipboard permission denied.');
-      });
+      .catch(err => setError('Clipboard permission denied.'));
   }, []);
 
   useEffect(() => {
     if (!webrtcRef.current) return;
     const webrtc = webrtcRef.current;
     webrtc.onclipboardcontent = (content: string) => {
-      if (clipboardStatus === 'enabled') {
-        navigator.clipboard.writeText(content).catch(err => console.error('Could not copy text to clipboard:', err));
-      }
+      if (clipboardStatus === 'enabled') navigator.clipboard.writeText(content).catch(err => console.error(err));
     };
   }, [clipboardStatus]);
 
@@ -257,7 +229,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
           navigator.clipboard.readText().then(text => {
             const stringToBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
             webrtcRef.current?.sendDataChannelMessage("cw," + stringToBase64(text));
-          }).catch(err => console.log('Cannot read clipboard on focus:', err));
+          }).catch(err => console.log(err));
         }
       }
     };
@@ -272,9 +244,9 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
 
   useEffect(() => {
     if (navigator.permissions) {
-      navigator.permissions.query({ name: 'clipboard-read' as PermissionName }).then(permissionStatus => {
-        if (permissionStatus.state === 'granted') setClipboardStatus('enabled');
-        permissionStatus.onchange = () => setClipboardStatus(permissionStatus.state === 'granted' ? 'enabled' : 'prompt');
+      navigator.permissions.query({ name: 'clipboard-read' as PermissionName }).then(p => {
+        if (p.state === 'granted') setClipboardStatus('enabled');
+        p.onchange = () => setClipboardStatus(p.state === 'granted' ? 'enabled' : 'prompt');
       });
     }
   }, []);

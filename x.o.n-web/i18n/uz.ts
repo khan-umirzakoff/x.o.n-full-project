@@ -10,6 +10,7 @@ export const uz = {
   register: 'Ro‘yxatdan o‘tish',
   registerAndPlay: 'O‘ynashni boshlash',
   logout: 'Chiqish',
+  settings: 'Sozlamalar',
   // Auth Modal
   username: 'Foydalanuvchi nomi',
   email: 'Elektron pochta',
