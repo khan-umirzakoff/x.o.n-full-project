@@ -58,7 +58,7 @@ export class WebRTCSignalling {
   };
 
   private _onServerError = (): void => {
-    this._setError('Connection error, retry in 3 seconds.');
+    this._setError("Signalling serverga ulanib bo'lmadi. Server manzili to'g'riligiga va ishlayotganiga ishonch hosil qiling.");
     this.retry_count++;
     if (this.ws_conn?.readyState === WebSocket.CLOSED) {
       setTimeout(() => {

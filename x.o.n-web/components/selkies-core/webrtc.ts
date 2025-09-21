@@ -78,7 +78,7 @@ export class WebRTCPlayer {
 
   private _onSignallingICE(icecandidate: RTCIceCandidate) {
     this._setDebug(`received ice candidate from signalling server: ${JSON.stringify(icecandidate)}`);
-    this.peerConnection?.addIceCandidate(icecandidate).catch(this._setError);
+    this.peerConnection?.addIceCandidate(icecandidate).catch(this._setError.bind(this));
   }
 
   private _onPeerICE = (event: RTCPeerConnectionIceEvent) => {
@@ -93,6 +93,10 @@ export class WebRTCPlayer {
       return;
     }
     this._setDebug('Received remote SDP offer');
+    if (this.peerConnection?.signalingState === 'closed') {
+        this._setDebug('Connection is already closed, ignoring SDP offer.');
+        return;
+    }
     this.peerConnection?.setRemoteDescription(sdp).then(() => {
       this._setDebug('Creating answer');
       this.peerConnection?.createAnswer()

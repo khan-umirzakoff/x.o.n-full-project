@@ -285,3 +285,26 @@ body {
 @keyframes shimmer {
   100% { transform: translateX(100%); }
 }
+
+/* New styles for LoadingOverlay */
+@keyframes loading-bar-full {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+.loading-progress-full {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #a855f7);
+  animation: loading-bar-full 15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5), 0 0 20px rgba(168, 85, 247, 0.5);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
