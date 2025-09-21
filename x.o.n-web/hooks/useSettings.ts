@@ -8,6 +8,7 @@ export interface StreamingSettings {
   resizeRemote: boolean;
   scaleLocal: boolean;
   showStatsOverlay: boolean;
+  showFPS: boolean;
 }
 
 const defaultSettings: StreamingSettings = {
@@ -18,6 +19,7 @@ const defaultSettings: StreamingSettings = {
   resizeRemote: true,
   scaleLocal: false,
   showStatsOverlay: false,
+  showFPS: true,
 };
 
 export const useSettings = () => {
@@ -28,6 +30,7 @@ export const useSettings = () => {
   const [resizeRemote, setResizeRemote] = useLocalStorage('settings_resizeRemote', defaultSettings.resizeRemote);
   const [scaleLocal, setScaleLocal] = useLocalStorage('settings_scaleLocal', defaultSettings.scaleLocal);
   const [showStatsOverlay, setShowStatsOverlay] = useLocalStorage('settings_showStatsOverlay', defaultSettings.showStatsOverlay);
+  const [showFPS, setShowFPS] = useLocalStorage('settings_showFPS', defaultSettings.showFPS);
 
   const settings: StreamingSettings = {
     videoBitrate,
@@ -37,6 +40,7 @@ export const useSettings = () => {
     resizeRemote,
     scaleLocal,
     showStatsOverlay,
+    showFPS,
   };
 
   const setSettings = {
@@ -47,6 +51,7 @@ export const useSettings = () => {
     setResizeRemote,
     setScaleLocal,
     setShowStatsOverlay,
+    setShowFPS,
   };
 
   return { settings, setSettings };
