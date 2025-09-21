@@ -30,6 +30,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const [audioBitrate, setAudioBitrate] = useState(128000);
   const [resizeRemote, setResizeRemote] = useState(true);
   const [clipboardStatus, setClipboardStatus] = useState<'enabled' | 'disabled' | 'prompt'>('prompt');
+  const [showExitPrompt, setShowExitPrompt] = useState(false);
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -218,16 +219,21 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
             console.log('Entered fullscreen, playing stream and setting resolution.');
             webrtcRef.current?.playStream();
             setIsStreamPlaying(true);
+            setShowExitPrompt(false); // Hide prompt if they re-enter fullscreen
             requestAnimationFrame(sendResolution);
         } else {
             console.log('Exited fullscreen.');
-            setIsStreamPlaying(false);
-            navigate(`/games/${gameId}`); // Navigate away on fullscreen exit
+            if (isStreamPlaying) {
+                setShowExitPrompt(true); // Show our custom prompt
+            } else {
+                // If we exit fullscreen before the stream was ever playing (e.g. from GO screen)
+                navigate(`/games/${gameId}`);
+            }
         }
     };
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-  }, [sendResolution, navigate, gameId]);
+  }, [sendResolution, isStreamPlaying, webrtcRef, navigate, gameId]);
 
   useEffect(() => {
     let resizeTimeout: NodeJS.Timeout;
@@ -299,7 +305,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     connectionStatus, isStreamPlaying, streamingStats, videoBitrate,
     setVideoBitrate, framerate, setFramerate, selectedResolution,
     setSelectedResolution, audioBitrate, setAudioBitrate, resizeRemote,
-    setResizeRemote, clipboardStatus, enableClipboard, handleGoClick,
-    handlePointerLock,
+    setResizeRemote, clipboardStatus, enableClipboard, showExitPrompt,
+    setShowExitPrompt, handleGoClick, handlePointerLock, enterFullscreen,
   };
 };
