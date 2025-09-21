@@ -26,7 +26,8 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const [streamingStats, setStreamingStats] = useState<any>({});
   const [videoBitrate, setVideoBitrate] = useState(8000);
   const [framerate, setFramerate] = useState(60);
-  const [resizeRemote, setResizeRemote] = useState(true);
+  const [selectedResolution, setSelectedResolution] = useState('auto');
+  const [audioBitrate, setAudioBitrate] = useState(128000);
   const [clipboardStatus, setClipboardStatus] = useState<'enabled' | 'disabled' | 'prompt'>('prompt');
 
   // Refs
@@ -196,40 +197,27 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     }
   }, [framerate, isStreamPlaying]);
 
+  // Effect to handle sending resolution changes to the server
   useEffect(() => {
-    if (isStreamPlaying && containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        const res = `${Math.round(width)}x${Math.round(height)}`;
-        sendDataChannelMessage(`_arg_resize,${resizeRemote},${res}`);
+    if (isStreamPlaying) {
+        let resolutionToSend = "1920x1080"; // Default
+        if (selectedResolution === 'auto') {
+            resolutionToSend = `${window.screen.width}x${window.screen.height}`;
+        } else {
+            resolutionToSend = selectedResolution;
+        }
+
+        console.log(`Sending resolution: ${resolutionToSend}`);
+        sendDataChannelMessage(`r,${resolutionToSend}`);
         sendDataChannelMessage(`s,${window.devicePixelRatio}`);
     }
-  }, [resizeRemote, isStreamPlaying, containerRef]);
+  }, [selectedResolution, isStreamPlaying]);
 
-  // Effect to handle window resize events
   useEffect(() => {
-    const handleResize = () => {
-        if (isStreamPlaying && resizeRemote && containerRef.current) {
-            const { width, height } = containerRef.current.getBoundingClientRect();
-            const res = `${Math.round(width)}x${Math.round(height)}`;
-            console.log(`Window resized, sending new resolution: ${res}`);
-            sendDataChannelMessage(`r,${res}`);
-            sendDataChannelMessage(`s,${window.devicePixelRatio}`);
-        }
-    };
-
-    // Debounce resize handler to avoid flooding messages
-    let resizeTimeout: NodeJS.Timeout;
-    const debouncedHandler = () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(handleResize, 300);
-    };
-
-    window.addEventListener('resize', debouncedHandler);
-    return () => {
-        window.removeEventListener('resize', debouncedHandler);
-        clearTimeout(resizeTimeout);
-    };
-  }, [isStreamPlaying, resizeRemote, containerRef]);
+    if (isStreamPlaying) {
+        sendDataChannelMessage(`ab,${audioBitrate}`);
+    }
+  }, [audioBitrate, isStreamPlaying]);
 
   const enableClipboard = useCallback(() => {
     navigator.clipboard.readText()
@@ -313,8 +301,10 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     setVideoBitrate,
     framerate,
     setFramerate,
-    resizeRemote,
-    setResizeRemote,
+    selectedResolution,
+    setSelectedResolution,
+    audioBitrate,
+    setAudioBitrate,
     clipboardStatus,
     enableClipboard,
     handleGoClick,
