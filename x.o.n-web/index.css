@@ -310,11 +310,13 @@ body {
 }
 
 /* Toggle Switch styles */
+.toggle-checkbox {
+    transition: all 0.2s ease;
+    left: 0;
+}
 .toggle-checkbox:checked {
-  right: 0;
   border-color: #4f46e5; /* indigo-600 */
-  right: auto;
-  left: 0;
+  left: 1rem; /* Adjust this value to match the width of the toggle (w-10 -> 2.5rem, so a bit less than half) */
 }
 .toggle-checkbox:checked + .toggle-label {
   background-color: #4f46e5; /* indigo-600 */

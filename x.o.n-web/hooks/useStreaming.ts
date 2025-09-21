@@ -205,6 +205,32 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     }
   }, [resizeRemote, isStreamPlaying, containerRef]);
 
+  // Effect to handle window resize events
+  useEffect(() => {
+    const handleResize = () => {
+        if (isStreamPlaying && resizeRemote && containerRef.current) {
+            const { width, height } = containerRef.current.getBoundingClientRect();
+            const res = `${Math.round(width)}x${Math.round(height)}`;
+            console.log(`Window resized, sending new resolution: ${res}`);
+            sendDataChannelMessage(`r,${res}`);
+            sendDataChannelMessage(`s,${window.devicePixelRatio}`);
+        }
+    };
+
+    // Debounce resize handler to avoid flooding messages
+    let resizeTimeout: NodeJS.Timeout;
+    const debouncedHandler = () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(handleResize, 300);
+    };
+
+    window.addEventListener('resize', debouncedHandler);
+    return () => {
+        window.removeEventListener('resize', debouncedHandler);
+        clearTimeout(resizeTimeout);
+    };
+  }, [isStreamPlaying, resizeRemote, containerRef]);
+
   const enableClipboard = useCallback(() => {
     navigator.clipboard.readText()
       .then(text => {

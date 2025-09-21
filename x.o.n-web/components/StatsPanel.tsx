@@ -53,6 +53,10 @@ const framerateOptions = [
     { value: 75, label: '75 fps' },
     { value: 90, label: '90 fps' },
     { value: 120, label: '120 fps' },
+    { value: 144, label: '144 fps' },
+    { value: 165, label: '165 fps' },
+    { value: 200, label: '200 fps' },
+    { value: 240, label: '240 fps' },
 ];
 
 const ToggleControl: React.FC<{ label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }> = ({ label, checked, onChange }) => (
