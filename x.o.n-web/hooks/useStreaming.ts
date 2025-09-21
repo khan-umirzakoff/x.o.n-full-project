@@ -25,6 +25,8 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const [isStreamPlaying, setIsStreamPlaying] = useState(false);
   const [streamingStats, setStreamingStats] = useState<any>({});
   const [videoBitrate, setVideoBitrate] = useState(8000);
+  const [framerate, setFramerate] = useState(60);
+  const [resizeRemote, setResizeRemote] = useState(true);
   const [clipboardStatus, setClipboardStatus] = useState<'enabled' | 'disabled' | 'prompt'>('prompt');
 
   // Refs
@@ -188,6 +190,21 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     }
   }, [videoBitrate, isStreamPlaying]);
 
+  useEffect(() => {
+    if (isStreamPlaying) {
+        sendDataChannelMessage(`_arg_fps,${framerate}`);
+    }
+  }, [framerate, isStreamPlaying]);
+
+  useEffect(() => {
+    if (isStreamPlaying && containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        const res = `${Math.round(width)}x${Math.round(height)}`;
+        sendDataChannelMessage(`_arg_resize,${resizeRemote},${res}`);
+        sendDataChannelMessage(`s,${window.devicePixelRatio}`);
+    }
+  }, [resizeRemote, isStreamPlaying, containerRef]);
+
   const enableClipboard = useCallback(() => {
     navigator.clipboard.readText()
       .then(text => {
@@ -268,6 +285,10 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     streamingStats,
     videoBitrate,
     setVideoBitrate,
+    framerate,
+    setFramerate,
+    resizeRemote,
+    setResizeRemote,
     clipboardStatus,
     enableClipboard,
     handleGoClick,

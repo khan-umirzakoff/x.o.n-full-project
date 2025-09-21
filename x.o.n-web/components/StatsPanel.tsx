@@ -5,6 +5,10 @@ interface StatsPanelProps {
   connectionStatus: string;
   videoBitrate: number;
   setVideoBitrate: (value: number) => void;
+  framerate: number;
+  setFramerate: (value: number) => void;
+  resizeRemote: boolean;
+  setResizeRemote: (value: boolean) => void;
   clipboardStatus: 'enabled' | 'disabled' | 'prompt';
   enableClipboard: () => void;
 }
@@ -42,8 +46,27 @@ const QualityControl: React.FC<{
   </div>
 );
 
+const framerateOptions = [
+    { value: 30, label: '30 fps' },
+    { value: 45, label: '45 fps' },
+    { value: 60, label: '60 fps' },
+    { value: 75, label: '75 fps' },
+    { value: 90, label: '90 fps' },
+    { value: 120, label: '120 fps' },
+];
 
-const StatsPanel: React.FC<StatsPanelProps> = ({ stats, connectionStatus, videoBitrate, setVideoBitrate, clipboardStatus, enableClipboard }) => {
+const ToggleControl: React.FC<{ label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }> = ({ label, checked, onChange }) => (
+    <div className="flex items-center justify-between my-3">
+        <label className="text-sm font-semibold text-gray-400">{label}</label>
+        <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+            <input type="checkbox" checked={checked} onChange={onChange} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+            <label className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-700 cursor-pointer"></label>
+        </div>
+    </div>
+);
+
+
+const StatsPanel: React.FC<StatsPanelProps> = ({ stats, connectionStatus, videoBitrate, setVideoBitrate, framerate, setFramerate, resizeRemote, setResizeRemote, clipboardStatus, enableClipboard }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const { general, video } = stats;
@@ -75,6 +98,24 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ stats, connectionStatus, videoB
               max={20000}
               step={1000}
               unit="Mbps"
+            />
+            <div className="my-3">
+                <label htmlFor="framerate-select" className="block text-sm font-semibold text-gray-400 mb-1">Framerate</label>
+                <select
+                    id="framerate-select"
+                    value={framerate}
+                    onChange={(e) => setFramerate(parseInt(e.target.value, 10))}
+                    className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    {framerateOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                </select>
+            </div>
+            <ToggleControl
+                label="Match Resolution to Window"
+                checked={resizeRemote}
+                onChange={(e) => setResizeRemote(e.target.checked)}
             />
             <div className="my-3">
                 <label className="block text-sm font-semibold text-gray-400 mb-1">Clipboard</label>
