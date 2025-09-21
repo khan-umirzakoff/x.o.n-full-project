@@ -10,6 +10,7 @@ export const en = {
   register: 'Register',
   registerAndPlay: 'Start Playing Now',
   logout: 'Log Out',
+  settings: 'Settings',
   // Auth Modal
   username: 'Username',
   email: 'Email',
