@@ -5,6 +5,7 @@ import { Game } from '../types';
 import { getImageSrc } from '../utils/imageUtils';
 import { WebRTCSignalling } from '../components/selkies-core/signalling';
 import { WebRTCPlayer } from '../components/selkies-core/webrtc';
+import { useSettings } from './useSettings';
 
 export interface UseStreamingParams {
   gameId: string | undefined;
@@ -12,22 +13,23 @@ export interface UseStreamingParams {
 
 export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const navigate = useNavigate();
+  const { settings } = useSettings();
 
   // Game data state
   const [game, setGame] = useState<Game | null>(null);
   const [backgroundImage, setBackgroundImage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Streaming state
+  // Streaming state - initialized from global settings
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState('initializing');
   const [signallingUrl, setSignallingUrl] = useState<string | null>(null);
   const [isStreamPlaying, setIsStreamPlaying] = useState(false);
   const [streamingStats, setStreamingStats] = useState<any>({});
-  const [videoBitrate, setVideoBitrate] = useState(8000);
-  const [framerate, setFramerate] = useState(60);
-  const [selectedResolution, setSelectedResolution] = useState('auto');
-  const [audioBitrate, setAudioBitrate] = useState(128000);
+  const [videoBitrate, setVideoBitrate] = useState(settings.videoBitrate);
+  const [framerate, setFramerate] = useState(settings.framerate);
+  const [selectedResolution, setSelectedResolution] = useState(settings.selectedResolution);
+  const [audioBitrate, setAudioBitrate] = useState(settings.audioBitrate);
   const [clipboardStatus, setClipboardStatus] = useState<'enabled' | 'disabled' | 'prompt'>('prompt');
   const [showExitPrompt, setShowExitPrompt] = useState(false);
 
@@ -148,58 +150,40 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
 
   // --- Resolution and Fullscreen Logic ---
   const sendResolution = useCallback((isInitial: boolean) => {
-    if (!isStreamPlaying && !isInitial) return;
     let resolutionToSend: string;
     if (isInitial || selectedResolution === 'auto') {
         resolutionToSend = `${window.screen.width}x${window.screen.height}`;
-        if (selectedResolution === 'auto' && !isInitial) {
-            // If user re-selects auto, update the state to reflect it
-        } else if (isInitial) {
-            setSelectedResolution('auto');
-        }
+        if (isInitial) setSelectedResolution('auto');
     } else {
         resolutionToSend = selectedResolution;
     }
-    console.log(`Sending resolution: ${resolutionToSend}`);
     sendDataChannelMessage(`r,${resolutionToSend}`);
     sendDataChannelMessage(`s,${window.devicePixelRatio}`);
-  }, [isStreamPlaying, selectedResolution, sendDataChannelMessage]);
+  }, [selectedResolution, sendDataChannelMessage, setSelectedResolution]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
-        if (document.fullscreenElement) {
-            if (!isStreamPlaying) {
-                console.log('Entered fullscreen for the first time, playing stream and setting resolution.');
-                webrtcRef.current?.playStream();
-                setIsStreamPlaying(true);
-                if (!hasSentInitialResolution.current) {
-                    requestAnimationFrame(() => sendResolution(true));
-                    hasSentInitialResolution.current = true;
-                }
-            }
-            setShowExitPrompt(false);
-        } else {
-            if (isStreamPlaying) {
-                console.log('Exited fullscreen.');
-                setShowExitPrompt(true);
-            } else if (hasConnectionStarted.current) {
-                // If we exit fullscreen before the stream was ever playing (e.g. from GO screen)
-                navigate(`/games/${gameId}`);
-            }
+      if (document.fullscreenElement) {
+        if (!isStreamPlaying) {
+          webrtcRef.current?.playStream();
+          setIsStreamPlaying(true);
+          if (!hasSentInitialResolution.current) {
+            requestAnimationFrame(() => sendResolution(true));
+            hasSentInitialResolution.current = true;
+          }
         }
+        setShowExitPrompt(false);
+      } else {
+        if (isStreamPlaying) setShowExitPrompt(true);
+      }
     };
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-  }, [isStreamPlaying, sendResolution, webrtcRef, navigate, gameId]);
+  }, [isStreamPlaying, sendResolution, webrtcRef]);
 
   useEffect(() => {
-    if (isStreamPlaying && !hasSentInitialResolution.current) {
-        // This case should not happen if flow is correct, but as a fallback
-        requestAnimationFrame(() => sendResolution(true));
-        hasSentInitialResolution.current = true;
-    }
-    if (isStreamPlaying) {
-        sendResolution(false);
+    if (isStreamPlaying && hasSentInitialResolution.current) {
+      sendResolution(false);
     }
   }, [selectedResolution, isStreamPlaying, sendResolution]);
 
@@ -210,7 +194,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
         webrtcRef.current?.sendDataChannelMessage("cr");
         setClipboardStatus('enabled');
       })
-      .catch(err => setError('Clipboard permission denied.'));
+      .catch(() => setError('Clipboard permission denied.'));
   }, []);
 
   useEffect(() => {
