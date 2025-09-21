@@ -46,6 +46,8 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const statsIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastStatsReport = useRef<any>(null);
   const lastStatsTimestamp = useRef<number>(0);
+  const previousJitterBufferDelay = useRef<number>(0);
+  const previousJitterBufferEmittedCount = useRef<number>(0);
 
 
   const sendDataChannelMessage = useCallback((message: string) => {
@@ -146,21 +148,31 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
             const audioBytesDelta = report.audio.bytesReceived - lastStatsReport.current.audio.bytesReceived;
             calculatedStats.audio.bitrate = (audioBytesDelta * 8) / timeDelta / 1000; // kbps
 
-            // Calculate total latency
-            const videoLatency = (report.general.currentRoundTripTime || 0) * 1000 + (report.video.jitterBufferDelay || 0) * 1000;
-            calculatedStats.video.latency = videoLatency;
+            // --- More accurate latency calculation (ported from gst-web) ---
+            let videoLatency = (report.general.currentRoundTripTime || 0) * 1000;
+            const jitterFramesDelta = report.video.jitterBufferEmittedCount - previousJitterBufferEmittedCount.current;
+            if (jitterFramesDelta > 0) {
+                const jitterDelayDelta = (report.video.jitterBufferDelay - previousJitterBufferDelay.current) * 1000;
+                videoLatency += jitterDelayDelta / jitterFramesDelta;
+            }
+            calculatedStats.video.latency = Math.round(videoLatency);
+            // --- End latency calculation ---
           }
 
           setStreamingStats(calculatedStats);
 
           lastStatsReport.current = report;
           lastStatsTimestamp.current = now;
+          previousJitterBufferDelay.current = report.video.jitterBufferDelay;
+          previousJitterBufferEmittedCount.current = report.video.jitterBufferEmittedCount;
 
         }, 1000);
       } else {
         if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
         lastStatsReport.current = null;
         lastStatsTimestamp.current = 0;
+        previousJitterBufferDelay.current = 0;
+        previousJitterBufferEmittedCount.current = 0;
         if (state === 'failed' || state === 'disconnected' || state === 'closed') {
             setError(`Connection ${state}`);
         }
