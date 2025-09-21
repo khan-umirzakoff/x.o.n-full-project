@@ -43,7 +43,7 @@ const StatsHUD: React.FC<StatsHUDProps> = ({ stats, gpuStats, cpuStats }) => {
     const cpuMem = cpuStats?.mem_used ? `${(cpuStats.mem_used / 1024 / 1024 / 1024).toFixed(2)} GB` : '...';
 
     return (
-        <div className="absolute top-4 left-4 bg-black/60 text-white p-3 rounded-lg text-xs z-40 pointer-events-none backdrop-blur-sm w-60">
+        <div className="absolute top-4 right-4 bg-black/60 text-white p-3 rounded-lg text-xs z-40 pointer-events-none backdrop-blur-sm w-60">
             <Section title="Video">
                 <HUDStat label="FPS" value={fps} />
                 <HUDStat label="Resolution" value={resolution} />
