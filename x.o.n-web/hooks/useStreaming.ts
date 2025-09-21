@@ -26,6 +26,8 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const [signallingUrl, setSignallingUrl] = useState<string | null>(null);
   const [isStreamPlaying, setIsStreamPlaying] = useState(false);
   const [streamingStats, setStreamingStats] = useState<any>({});
+  const [encoderName, setEncoderName] = useState('unknown');
+  const [serverLatency, setServerLatency] = useState(0);
   const [serverGpuStats, setServerGpuStats] = useState<any>({});
   const [serverCpuStats, setServerCpuStats] = useState<any>({});
   const [videoBitrate, setVideoBitrate] = useState(settings.videoBitrate);
@@ -149,7 +151,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
             calculatedStats.audio.bitrate = (audioBytesDelta * 8) / timeDelta / 1000; // kbps
 
             // --- More accurate latency calculation (ported from gst-web) ---
-            let videoLatency = (report.general.currentRoundTripTime || 0) * 1000;
+            let videoLatency = (report.general.currentRoundTripTime || serverLatency) * 1000;
             const jitterFramesDelta = report.video.jitterBufferEmittedCount - previousJitterBufferEmittedCount.current;
             if (jitterFramesDelta > 0) {
                 const jitterDelayDelta = (report.video.jitterBufferDelay - previousJitterBufferDelay.current) * 1000;
@@ -158,6 +160,9 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
             calculatedStats.video.latency = Math.round(videoLatency);
             // --- End latency calculation ---
           }
+
+          // Merge encoder name into the video stats
+          calculatedStats.video.decoder = encoderName;
 
           setStreamingStats(calculatedStats);
 
@@ -183,12 +188,22 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
         console.log("Received system action:", action);
         if (action === 'reload' && webrtcRef.current) {
             webrtcRef.current.reset();
+        } else if (action.startsWith('video_bitrate')) {
+            const bitrate = parseInt(action.split(",")[1]);
+            setVideoBitrate(bitrate);
+        } else if (action.startsWith('framerate')) {
+            const framerate = parseInt(action.split(",")[1]);
+            setFramerate(framerate);
+        } else if (action.startsWith("encoder")) {
+            const encoder = action.split(",")[1];
+            const isHardware = encoder.startsWith("nv") || encoder.startsWith("va");
+            setEncoderName(`${isHardware ? 'hardware' : 'software'} (${encoder})`);
         }
-        // TODO: Handle other system actions like setting initial bitrate/framerate from server
     };
 
     webrtc.ongpustats = (stats: any) => setServerGpuStats(stats);
     webrtc.onsystemstats = (stats: any) => setServerCpuStats(stats);
+    webrtc.onlatencymeasurement = (latency: number) => setServerLatency(latency * 2.0);
 
     webrtc.oncursorchange = (handle, curdata, hotspot, override) => {
         if (!videoRef.current) return;

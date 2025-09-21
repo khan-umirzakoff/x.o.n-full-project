@@ -20,34 +20,33 @@ const Section: React.FC<{ title: string, children: React.ReactNode }> = ({ title
     </div>
 );
 
+const isNumber = (value: any): value is number => typeof value === 'number' && !isNaN(value);
+
 const StatsHUD: React.FC<StatsHUDProps> = ({ stats, gpuStats, cpuStats }) => {
     const { general = {}, video = {}, audio = {} } = stats || {};
 
     // Video Stats
-    const fps = video?.framesPerSecond ?? '...';
-    const resolution = video?.frameWidth ? `${video.frameWidth}x${video.frameHeight}` : '...';
-    const videoBitrate = video?.bitrate ? `${video.bitrate.toFixed(1)} Mbps` : '...';
-    const jitter = video?.jitter ? `${(video.jitter * 1000).toFixed(2)}ms` : '...';
+    const fps = isNumber(video?.framesPerSecond) ? video.framesPerSecond : '...';
+    const resolution = video?.frameWidth && video?.frameHeight ? `${video.frameWidth}x${video.frameHeight}` : '...';
+    const videoBitrate = isNumber(video?.bitrate) ? `${video.bitrate.toFixed(1)} Mbps` : '...';
+    const jitter = isNumber(video?.jitter) ? `${(video.jitter * 1000).toFixed(2)}ms` : '...';
     const decoder = video?.decoder ?? '...';
 
     // Audio Stats
-    const audioBitrate = audio?.bitrate ? `${audio.bitrate.toFixed(1)} Kbps` : '...';
+    const audioBitrate = isNumber(audio?.bitrate) ? `${audio.bitrate.toFixed(1)} Kbps` : '...';
     const audioCodec = audio?.codecName ?? '...';
 
     // Connection Stats
-    const latency = video?.latency ? `${video.latency.toFixed(0)}ms` : '...';
-    const packetsLost = general?.packetsLost ?? '...';
+    const latency = isNumber(video?.latency) ? `${video.latency.toFixed(0)}ms` : '...';
+    const packetsLost = isNumber(general?.packetsLost) ? general.packetsLost : '...';
     const connectionType = general?.connectionType ?? '...';
-    const bandwidth = general?.availableReceiveBandwidth ? `${(general.availableReceiveBandwidth / 1e6).toFixed(2)} Mbps` : '...';
-    const bytesReceived = general?.bytesReceived ? `${(general.bytesReceived / 1e6).toFixed(2)} MB` : '...';
-    const bytesSent = general?.bytesSent ? `${(general.bytesSent / 1e6).toFixed(2)} MB` : '...';
-
+    const bandwidth = isNumber(general?.availableReceiveBandwidth) ? `${(general.availableReceiveBandwidth / 1e6).toFixed(2)} Mbps` : '...';
+    const bytesReceived = isNumber(general?.bytesReceived) ? `${(general.bytesReceived / 1e6).toFixed(2)} MB` : '...';
 
     // Server Stats
-    const gpuLoad = gpuStats?.load ? `${(gpuStats.load * 100).toFixed(0)}%` : '...';
-    const gpuMem = gpuStats?.memory_used ? `${(gpuStats.memory_used / 1024).toFixed(2)} GB` : '...';
-    const cpuLoad = cpuStats?.cpu_percent ? `${cpuStats.cpu_percent.toFixed(0)}%` : '...';
-    const cpuMem = cpuStats?.mem_used ? `${(cpuStats.mem_used / 1024 / 1024 / 1024).toFixed(2)} GB` : '...';
+    const gpuLoad = isNumber(gpuStats?.load) ? `${(gpuStats.load * 100).toFixed(0)}%` : '...';
+    const gpuMem = isNumber(gpuStats?.memory_used) ? `${(gpuStats.memory_used / 1024).toFixed(2)} GB` : '...';
+    const cpuLoad = isNumber(cpuStats?.cpu_percent) ? `${cpuStats.cpu_percent.toFixed(0)}%` : '...';
 
     return (
         <div className="absolute top-4 right-4 bg-black/60 text-white p-3 rounded-lg text-xs z-40 pointer-events-none backdrop-blur-sm w-64">
@@ -68,7 +67,7 @@ const StatsHUD: React.FC<StatsHUDProps> = ({ stats, gpuStats, cpuStats }) => {
                 <HUDStat label="Avail. Bandwidth" value={bandwidth} />
                 <HUDStat label="Data Received" value={bytesReceived} />
                 <HUDStat label="Connection" value={connectionType} />
-            </Section>
+            </section>
             <Section title="Server">
                 <HUDStat label="CPU" value={cpuLoad} />
                 <HUDStat label="GPU" value={gpuLoad} />
