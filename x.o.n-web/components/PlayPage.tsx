@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStreaming } from '../hooks/useStreaming';
 import LoadingOverlay from './LoadingOverlay';
-import StatsPanel from './StatsPanel';
+import StatsHUD from './StatsHUD';
 import ExitFullscreenPrompt from './ExitFullscreenPrompt';
 
 const PlayPage: React.FC = () => {
@@ -17,6 +17,8 @@ const PlayPage: React.FC = () => {
     connectionStatus,
     isStreamPlaying,
     streamingStats,
+    serverGpuStats,
+    serverCpuStats,
     videoBitrate,
     setVideoBitrate,
     framerate,
@@ -27,6 +29,9 @@ const PlayPage: React.FC = () => {
     setAudioBitrate,
     resizeRemote,
     setResizeRemote,
+    scaleLocal,
+    setScaleLocal,
+    showStatsOverlay,
     clipboardStatus,
     enableClipboard,
     showExitPrompt,
@@ -76,10 +81,11 @@ const PlayPage: React.FC = () => {
          </div>
       )}
 
-      {isStreamPlaying && (
-        <StatsPanel
+      {isStreamPlaying && showStatsOverlay && (
+        <StatsHUD
           stats={streamingStats}
-          connectionStatus={connectionStatus}
+          gpuStats={serverGpuStats}
+          cpuStats={serverCpuStats}
         />
       )}
 

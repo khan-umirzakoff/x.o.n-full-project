@@ -21,6 +21,38 @@ const audioBitrateOptions = [
     { value: 192000, label: '192 Kbps' }, { value: 256000, label: '256 Kbps' }, { value: 320000, label: '320 Kbps' },
 ];
 
+interface ToggleProps {
+    label: string;
+    description: string;
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+}
+
+const ToggleSwitch: React.FC<ToggleProps> = ({ label, description, checked, onChange }) => (
+    <div>
+        <label className="flex items-center justify-between cursor-pointer">
+            <div>
+                <span className="block text-md font-semibold text-gray-300">{label}</span>
+                <span className="block text-sm text-gray-500">{description}</span>
+            </div>
+            <div className="relative">
+                <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={checked}
+                    onChange={(e) => onChange(e.target.checked)}
+                />
+                <div className="block bg-gray-600 w-14 h-8 rounded-full"></div>
+                <div
+                    className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
+                        checked ? 'translate-x-6' : ''
+                    }`}
+                ></div>
+            </div>
+        </label>
+    </div>
+);
+
 const SettingsPage: React.FC = () => {
     const [activeCategory, setActiveCategory] = useState<SettingsCategory>('gameplay');
     const { settings, setSettings } = useSettings();
@@ -30,41 +62,66 @@ const SettingsPage: React.FC = () => {
         switch (activeCategory) {
             case 'gameplay':
                 return (
-                    <div>
-                        <h3 className="text-xl font-semibold text-gray-300 mb-4">Streaming Quality</h3>
-                        <div className="space-y-6">
-                            <div>
-                                <label htmlFor="resolution-select" className="block text-sm font-semibold text-gray-400 mb-1">Resolution</label>
-                                <select id="resolution-select" value={settings.selectedResolution} onChange={(e) => setSettings.setSelectedResolution(e.target.value)} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    {resolutionOptions.map(opt => {
-                                        const height = opt.value === 'auto' ? screenHeight : parseInt(opt.value.split('x')[1], 10);
-                                        const isDisabled = height > screenHeight;
-                                        return (
-                                            <option key={opt.value} value={opt.value} disabled={isDisabled} title={isDisabled ? `Your monitor does not support resolutions above ${screenHeight}p` : ''}>
-                                                {opt.label}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
+                    <div className="space-y-8">
+                        <section>
+                            <h3 className="text-xl font-semibold text-gray-300 mb-4">Streaming Quality</h3>
+                            <div className="space-y-6">
+                                <div>
+                                    <label htmlFor="resolution-select" className="block text-sm font-semibold text-gray-400 mb-1">Resolution</label>
+                                    <select id="resolution-select" value={settings.selectedResolution} onChange={(e) => setSettings.setSelectedResolution(e.target.value)} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        {resolutionOptions.map(opt => {
+                                            const height = opt.value === 'auto' ? screenHeight : parseInt(opt.value.split('x')[1], 10);
+                                            const isDisabled = height > screenHeight;
+                                            return (
+                                                <option key={opt.value} value={opt.value} disabled={isDisabled} title={isDisabled ? `Your monitor does not support resolutions above ${screenHeight}p` : ''}>
+                                                    {opt.label}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="framerate-select" className="block text-sm font-semibold text-gray-400 mb-1">Framerate</label>
+                                    <select id="framerate-select" value={settings.framerate} onChange={(e) => setSettings.setFramerate(parseInt(e.target.value, 10))} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        {framerateOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="video-bitrate-select" className="block text-sm font-semibold text-gray-400 mb-1">Video Bitrate (Mbps)</label>
+                                    <input type="range" min="1000" max="20000" step="1000" value={settings.videoBitrate} onChange={(e) => setSettings.setVideoBitrate(parseInt(e.target.value, 10))} className="w-full"/>
+                                    <span className="text-sm text-gray-400">{(settings.videoBitrate / 1000).toFixed(1)} Mbps</span>
+                                </div>
+                                <div>
+                                    <label htmlFor="audio-bitrate-select" className="block text-sm font-semibold text-gray-400 mb-1">Audio Bitrate (Kbps)</label>
+                                    <select id="audio-bitrate-select" value={settings.audioBitrate} onChange={(e) => setSettings.setAudioBitrate(parseInt(e.target.value, 10))} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        {audioBitrateOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                                    </select>
+                                </div>
                             </div>
-                            <div>
-                                <label htmlFor="framerate-select" className="block text-sm font-semibold text-gray-400 mb-1">Framerate</label>
-                                <select id="framerate-select" value={settings.framerate} onChange={(e) => setSettings.setFramerate(parseInt(e.target.value, 10))} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    {framerateOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-                                </select>
+                        </section>
+                        <section>
+                            <h3 className="text-xl font-semibold text-gray-300 mb-4">Display</h3>
+                            <div className="space-y-6">
+                                <ToggleSwitch
+                                    label="Resize remote to fit window"
+                                    description="Match the server's resolution to your window size. Disabling this may improve performance."
+                                    checked={settings.resizeRemote}
+                                    onChange={setSettings.setResizeRemote}
+                                />
+                                <ToggleSwitch
+                                    label="Scale to fit window"
+                                    description="Stretch the video to fit your window. Best used when 'Resize remote' is off."
+                                    checked={settings.scaleLocal}
+                                    onChange={setSettings.setScaleLocal}
+                                />
+                                <ToggleSwitch
+                                    label="Show In-Game Stats"
+                                    description="Display a small stats overlay during gameplay."
+                                    checked={settings.showStatsOverlay}
+                                    onChange={setSettings.setShowStatsOverlay}
+                                />
                             </div>
-                            <div>
-                                <label htmlFor="video-bitrate-select" className="block text-sm font-semibold text-gray-400 mb-1">Video Bitrate (Mbps)</label>
-                                <input type="range" min="1000" max="20000" step="1000" value={settings.videoBitrate} onChange={(e) => setSettings.setVideoBitrate(parseInt(e.target.value, 10))} className="w-full"/>
-                                <span className="text-sm text-gray-400">{(settings.videoBitrate / 1000).toFixed(1)} Mbps</span>
-                            </div>
-                             <div>
-                                <label htmlFor="audio-bitrate-select" className="block text-sm font-semibold text-gray-400 mb-1">Audio Bitrate (Kbps)</label>
-                                <select id="audio-bitrate-select" value={settings.audioBitrate} onChange={(e) => setSettings.setAudioBitrate(parseInt(e.target.value, 10))} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    {audioBitrateOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-                                </select>
-                            </div>
-                        </div>
+                        </section>
                     </div>
                 );
             case 'account':

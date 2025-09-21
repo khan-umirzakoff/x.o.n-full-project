@@ -26,10 +26,14 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const [signallingUrl, setSignallingUrl] = useState<string | null>(null);
   const [isStreamPlaying, setIsStreamPlaying] = useState(false);
   const [streamingStats, setStreamingStats] = useState<any>({});
+  const [serverGpuStats, setServerGpuStats] = useState<any>({});
+  const [serverCpuStats, setServerCpuStats] = useState<any>({});
   const [videoBitrate, setVideoBitrate] = useState(settings.videoBitrate);
   const [framerate, setFramerate] = useState(settings.framerate);
   const [selectedResolution, setSelectedResolution] = useState(settings.selectedResolution);
   const [audioBitrate, setAudioBitrate] = useState(settings.audioBitrate);
+  const [resizeRemote, setResizeRemote] = useState(settings.resizeRemote);
+  const [scaleLocal, setScaleLocal] = useState(settings.scaleLocal);
   const [clipboardStatus, setClipboardStatus] = useState<'enabled' | 'disabled' | 'prompt'>('prompt');
   const [showExitPrompt, setShowExitPrompt] = useState(false);
 
@@ -110,6 +114,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     const signalling = new WebRTCSignalling(signallingUrl);
     const webrtc = new WebRTCPlayer(signalling, videoRef.current);
     webrtcRef.current = webrtc;
+
     webrtc.onstatus = (msg: string) => console.log('WebRTC Status:', msg);
     webrtc.onerror = (msg: string) => { setError(msg); setConnectionStatus('failed'); };
     webrtc.onconnectionstatechange = (state: RTCPeerConnectionState) => {
@@ -121,10 +126,42 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
         }, 1000);
       } else {
         if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
-        if (state === 'failed' || state === 'disconnected' || state === 'closed') setError(`Connection ${state}`);
+        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+            setError(`Connection ${state}`);
+            // Optional: Implement a reconnect button that calls webrtc.reset()
+        }
       }
     };
-    webrtc.onplaystreamrequired = () => {};
+
+    webrtc.onsystemaction = (action: string) => {
+        console.log("Received system action:", action);
+        if (action === 'reload' && webrtcRef.current) {
+            webrtcRef.current.reset();
+        }
+        // TODO: Handle other system actions like setting initial bitrate/framerate from server
+    };
+
+    webrtc.ongpustats = (stats: any) => setServerGpuStats(stats);
+    webrtc.onsystemstats = (stats: any) => setServerCpuStats(stats);
+
+    webrtc.oncursorchange = (handle, curdata, hotspot, override) => {
+        if (!videoRef.current) return;
+        if (handle === 0) {
+            videoRef.current.style.cursor = "auto";
+            return;
+        }
+        if (override) {
+            videoRef.current.style.cursor = override;
+            return;
+        }
+        const cursorUrl = `url('data:image/png;base64,${curdata}') ${hotspot.x} ${hotspot.y}, auto`;
+        videoRef.current.style.cursor = cursorUrl;
+    };
+
+    webrtc.onplaystreamrequired = () => {
+        // This can be used to show a "Click to Play" button if autoplay fails
+    };
+
     webrtc.connect();
     return () => { webrtc.disconnect(); webrtcRef.current = null; };
   }, [signallingUrl]);
@@ -147,6 +184,28 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   useEffect(() => { if (isStreamPlaying) sendDataChannelMessage(`vb,${videoBitrate}`); }, [videoBitrate, isStreamPlaying, sendDataChannelMessage]);
   useEffect(() => { if (isStreamPlaying) sendDataChannelMessage(`_arg_fps,${framerate}`); }, [framerate, isStreamPlaying, sendDataChannelMessage]);
   useEffect(() => { if (isStreamPlaying) sendDataChannelMessage(`ab,${audioBitrate}`); }, [audioBitrate, isStreamPlaying, sendDataChannelMessage]);
+  useEffect(() => {
+    if (isStreamPlaying) {
+        const res = `${window.innerWidth}x${window.innerHeight}`;
+        sendDataChannelMessage(`_arg_resize,${resizeRemote},${res}`);
+    }
+  }, [resizeRemote, isStreamPlaying, sendDataChannelMessage]);
+
+  useEffect(() => {
+    if (webrtcRef.current?.input.element) {
+        const video = webrtcRef.current.input.element;
+        if (scaleLocal) {
+            video.style.width = '100%';
+            video.style.height = '100%';
+            video.style.objectFit = 'contain';
+        } else {
+            video.style.width = '';
+            video.style.height = '';
+            video.style.objectFit = '';
+        }
+    }
+  }, [scaleLocal, isStreamPlaying]);
+
 
   // --- Resolution and Fullscreen Logic ---
   const sendResolution = useCallback((isInitial: boolean) => {
@@ -242,5 +301,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     setSelectedResolution, audioBitrate, setAudioBitrate,
     clipboardStatus, enableClipboard, showExitPrompt,
     setShowExitPrompt, handleGoClick, handlePointerLock, enterFullscreen,
+    resizeRemote, setResizeRemote, serverGpuStats, serverCpuStats,
+    scaleLocal, setScaleLocal,
   };
 };
