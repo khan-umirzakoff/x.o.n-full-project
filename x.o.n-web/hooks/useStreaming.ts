@@ -97,7 +97,10 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
         setSignallingUrl(wsUrl);
       })
       .catch((err: any) => {
-        setError(`Agent bilan bog'lanishda xatolik: ${err.message}`);
+        const message = err.message.includes('Failed to fetch')
+          ? "Agent serveriga ulanib bo'lmadi (Connection Refused). Server ishlayotganiga ishonch hosil qiling."
+          : `Agent bilan bog'lanishda xatolik: ${err.message}`;
+        setError(message);
         setConnectionStatus('failed');
       });
   }, [isLoading, game, gameId]);
