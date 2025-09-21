@@ -302,6 +302,8 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     clipboardStatus, enableClipboard, showExitPrompt,
     setShowExitPrompt, handleGoClick, handlePointerLock, enterFullscreen,
     resizeRemote, setResizeRemote, serverGpuStats, serverCpuStats,
-    scaleLocal, setScaleLocal, showFPS: settings.showFPS,
+    scaleLocal, setScaleLocal,
+    showFPS: settings.showFPS,
+    showStatsOverlay: settings.showStatsOverlay,
   };
 };
