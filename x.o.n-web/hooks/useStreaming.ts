@@ -25,6 +25,10 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const [isStreamPlaying, setIsStreamPlaying] = useState(false);
   const [streamingStats, setStreamingStats] = useState<any>({});
   const [videoBitrate, setVideoBitrate] = useState(8000);
+  const [framerate, setFramerate] = useState(60);
+  const [selectedResolution, setSelectedResolution] = useState('auto');
+  const [audioBitrate, setAudioBitrate] = useState(128000);
+  const [resizeRemote, setResizeRemote] = useState(true);
   const [clipboardStatus, setClipboardStatus] = useState<'enabled' | 'disabled' | 'prompt'>('prompt');
 
   // Refs
@@ -33,6 +37,10 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const webrtcRef = useRef<WebRTCPlayer | null>(null);
   const hasConnectionStarted = useRef(false);
   const statsIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const sendDataChannelMessage = useCallback((message: string) => {
+    webrtcRef.current?.sendDataChannelMessage(message);
+  }, []);
 
   // Fetch game data
   useEffect(() => {
@@ -165,11 +173,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   }, []);
 
   const handleGoClick = useCallback(() => {
-    if (webrtcRef.current) {
-      webrtcRef.current.playStream();
-      enterFullscreen();
-      setIsStreamPlaying(true);
-    }
+    enterFullscreen();
   }, [enterFullscreen]);
 
   const handlePointerLock = useCallback(() => {
@@ -178,16 +182,65 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     }
   }, []);
 
-  const sendDataChannelMessage = (message: string) => {
-    webrtcRef.current?.sendDataChannelMessage(message);
-  };
+  // --- Quality Control Effects ---
+  useEffect(() => {
+    if (isStreamPlaying) sendDataChannelMessage(`vb,${videoBitrate}`);
+  }, [videoBitrate, isStreamPlaying, sendDataChannelMessage]);
 
   useEffect(() => {
-    if (isStreamPlaying) {
-        sendDataChannelMessage(`vb,${videoBitrate}`);
-    }
-  }, [videoBitrate, isStreamPlaying]);
+    if (isStreamPlaying) sendDataChannelMessage(`_arg_fps,${framerate}`);
+  }, [framerate, isStreamPlaying, sendDataChannelMessage]);
 
+  useEffect(() => {
+    if (isStreamPlaying) sendDataChannelMessage(`ab,${audioBitrate}`);
+  }, [audioBitrate, isStreamPlaying, sendDataChannelMessage]);
+
+  // --- Resolution and Fullscreen Logic ---
+  const sendResolution = useCallback(() => {
+    if (!containerRef.current) return;
+    let resolutionToSend: string;
+    if (resizeRemote) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        resolutionToSend = `${Math.round(width)}x${Math.round(height)}`;
+    } else {
+        resolutionToSend = selectedResolution === 'auto'
+            ? `${window.screen.width}x${window.screen.height}`
+            : selectedResolution;
+    }
+    console.log(`Sending resolution: ${resolutionToSend}`);
+    sendDataChannelMessage(`r,${resolutionToSend}`);
+    sendDataChannelMessage(`s,${window.devicePixelRatio}`);
+  }, [resizeRemote, selectedResolution, sendDataChannelMessage, containerRef]);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+        if (document.fullscreenElement) {
+            console.log('Entered fullscreen, playing stream and setting resolution.');
+            webrtcRef.current?.playStream();
+            setIsStreamPlaying(true);
+            requestAnimationFrame(sendResolution);
+        } else {
+            console.log('Exited fullscreen.');
+            setIsStreamPlaying(false);
+            navigate(`/games/${gameId}`); // Navigate away on fullscreen exit
+        }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, [sendResolution, navigate, gameId]);
+
+  useEffect(() => {
+    let resizeTimeout: NodeJS.Timeout;
+    const debouncedHandler = () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(sendResolution, 300);
+    };
+    window.addEventListener('resize', debouncedHandler);
+    return () => window.removeEventListener('resize', debouncedHandler);
+  }, [sendResolution]);
+
+
+  // --- Clipboard Logic ---
   const enableClipboard = useCallback(() => {
     navigator.clipboard.readText()
       .then(text => {
@@ -201,76 +254,52 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
       });
   }, []);
 
-  // Setup WebRTC event listeners for advanced features
   useEffect(() => {
     if (!webrtcRef.current) return;
     const webrtc = webrtcRef.current;
-
-    // --- Clipboard ---
     webrtc.onclipboardcontent = (content: string) => {
       if (clipboardStatus === 'enabled') {
-        navigator.clipboard.writeText(content).catch(err => {
-          console.error('Could not copy text to clipboard:', err);
-        });
+        navigator.clipboard.writeText(content).catch(err => console.error('Could not copy text to clipboard:', err));
       }
     };
+  }, [clipboardStatus]);
 
+  useEffect(() => {
     const handleFocus = () => {
-      // Reset keyboard state
-      webrtc.sendDataChannelMessage("kr");
-      // Sync clipboard
-      if (clipboardStatus === 'enabled') {
-        navigator.clipboard.readText().then(text => {
-          // A simple base64 implementation
-          const stringToBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
-          webrtc.sendDataChannelMessage("cw," + stringToBase64(text));
-        }).catch(err => console.log('Cannot read clipboard on focus:', err));
+      if (webrtcRef.current) {
+        webrtcRef.current.sendDataChannelMessage("kr");
+        if (clipboardStatus === 'enabled') {
+          navigator.clipboard.readText().then(text => {
+            const stringToBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
+            webrtcRef.current?.sendDataChannelMessage("cw," + stringToBase64(text));
+          }).catch(err => console.log('Cannot read clipboard on focus:', err));
+        }
       }
     };
-    const handleBlur = () => webrtc.sendDataChannelMessage("kr");
-
+    const handleBlur = () => webrtcRef.current?.sendDataChannelMessage("kr");
     window.addEventListener('focus', handleFocus);
     window.addEventListener('blur', handleBlur);
-
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
     };
   }, [isStreamPlaying, clipboardStatus]);
 
-  // Check clipboard permissions on mount
   useEffect(() => {
     if (navigator.permissions) {
       navigator.permissions.query({ name: 'clipboard-read' as PermissionName }).then(permissionStatus => {
-        if (permissionStatus.state === 'granted') {
-          setClipboardStatus('enabled');
-        }
-        permissionStatus.onchange = () => {
-          if (permissionStatus.state === 'granted') {
-            setClipboardStatus('enabled');
-          } else {
-            setClipboardStatus('prompt');
-          }
-        };
+        if (permissionStatus.state === 'granted') setClipboardStatus('enabled');
+        permissionStatus.onchange = () => setClipboardStatus(permissionStatus.state === 'granted' ? 'enabled' : 'prompt');
       });
     }
   }, []);
 
   return {
-    game,
-    backgroundImage,
-    isLoading,
-    error,
-    containerRef,
-    videoRef,
-    connectionStatus,
-    isStreamPlaying,
-    streamingStats,
-    videoBitrate,
-    setVideoBitrate,
-    clipboardStatus,
-    enableClipboard,
-    handleGoClick,
+    game, backgroundImage, isLoading, error, containerRef, videoRef,
+    connectionStatus, isStreamPlaying, streamingStats, videoBitrate,
+    setVideoBitrate, framerate, setFramerate, selectedResolution,
+    setSelectedResolution, audioBitrate, setAudioBitrate, resizeRemote,
+    setResizeRemote, clipboardStatus, enableClipboard, handleGoClick,
     handlePointerLock,
   };
 };

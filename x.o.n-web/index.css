@@ -308,3 +308,16 @@ body {
 .animate-fade-in {
   animation: fade-in 0.5s ease-out forwards;
 }
+
+/* Toggle Switch styles */
+.toggle-checkbox {
+    transition: all 0.2s ease;
+    left: 0;
+}
+.toggle-checkbox:checked {
+  border-color: #4f46e5; /* indigo-600 */
+  left: 1rem; /* Adjust this value to match the width of the toggle (w-10 -> 2.5rem, so a bit less than half) */
+}
+.toggle-checkbox:checked + .toggle-label {
+  background-color: #4f46e5; /* indigo-600 */
+}
