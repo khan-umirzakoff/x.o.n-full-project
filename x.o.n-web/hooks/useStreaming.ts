@@ -44,6 +44,9 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const hasConnectionStarted = useRef(false);
   const hasSentInitialResolution = useRef(false);
   const statsIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastStatsReport = useRef<any>(null);
+  const lastStatsTimestamp = useRef<number>(0);
+
 
   const sendDataChannelMessage = useCallback((message: string) => {
     webrtcRef.current?.sendDataChannelMessage(message);
@@ -121,14 +124,45 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
       setConnectionStatus(state);
       if (state === 'connected') {
         statsIntervalRef.current = setInterval(async () => {
-          const stats = await webrtcRef.current?.getConnectionStats();
-          if (stats) setStreamingStats(stats);
+          if (!webrtcRef.current) return;
+          const report = await webrtcRef.current.getConnectionStats();
+          if (!report) return;
+
+          const now = Date.now();
+          const timeDelta = lastStatsTimestamp.current ? (now - lastStatsTimestamp.current) / 1000 : 0;
+
+          let calculatedStats: any = {
+              video: { ...report.video },
+              audio: { ...report.audio },
+              general: { ...report.general },
+          };
+
+          if (timeDelta > 0 && lastStatsReport.current) {
+            // Calculate video bitrate
+            const videoBytesDelta = report.video.bytesReceived - lastStatsReport.current.video.bytesReceived;
+            calculatedStats.video.bitrate = (videoBytesDelta * 8) / timeDelta / 1000000; // Mbps
+
+            // Calculate audio bitrate
+            const audioBytesDelta = report.audio.bytesReceived - lastStatsReport.current.audio.bytesReceived;
+            calculatedStats.audio.bitrate = (audioBytesDelta * 8) / timeDelta / 1000; // kbps
+
+            // Calculate total latency
+            const videoLatency = (report.general.currentRoundTripTime || 0) * 1000 + (report.video.jitterBufferDelay || 0) * 1000;
+            calculatedStats.video.latency = videoLatency;
+          }
+
+          setStreamingStats(calculatedStats);
+
+          lastStatsReport.current = report;
+          lastStatsTimestamp.current = now;
+
         }, 1000);
       } else {
         if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
+        lastStatsReport.current = null;
+        lastStatsTimestamp.current = 0;
         if (state === 'failed' || state === 'disconnected' || state === 'closed') {
             setError(`Connection ${state}`);
-            // Optional: Implement a reconnect button that calls webrtc.reset()
         }
       }
     };

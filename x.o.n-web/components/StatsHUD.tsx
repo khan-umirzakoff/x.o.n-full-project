@@ -23,18 +23,18 @@ const Section: React.FC<{ title: string, children: React.ReactNode }> = ({ title
 const StatsHUD: React.FC<StatsHUDProps> = ({ stats, gpuStats, cpuStats }) => {
     const { general = {}, video = {}, audio = {} } = stats || {};
 
-    const rtt = general?.currentRoundTripTime ? `${(general.currentRoundTripTime * 1000).toFixed(0)}ms` : '...';
+    const latency = video?.latency ? `${video.latency.toFixed(0)}ms` : '...';
     const packetsLost = general?.packetsLost ?? '...';
     const connectionType = general?.connectionType ?? '...';
     const bandwidth = general?.availableReceiveBandwidth ? `${(general.availableReceiveBandwidth / 1e6).toFixed(2)} Mbps` : '...';
 
     const fps = video?.framesPerSecond ?? '...';
     const resolution = video?.frameWidth ? `${video.frameWidth}x${video.frameHeight}` : '...';
-    const bitrate = video?.bytesReceived ? `${(video.bytesReceived * 8 / 1000000).toFixed(1)} Mbps` : '...';
+    const bitrate = video?.bitrate ? `${video.bitrate.toFixed(1)} Mbps` : '...';
     const jitter = video?.jitter ? `${(video.jitter * 1000).toFixed(2)}ms` : '...';
     const decoder = video?.decoder ?? '...';
 
-    const audioBitrate = audio?.bytesReceived ? `${(audio.bytesReceived * 8 / 1000).toFixed(1)} Kbps` : '...';
+    const audioBitrate = audio?.bitrate ? `${audio.bitrate.toFixed(1)} Kbps` : '...';
 
     const gpuLoad = gpuStats?.load ? `${(gpuStats.load * 100).toFixed(0)}%` : '...';
     const gpuMem = gpuStats?.memory_used ? `${(gpuStats.memory_used / 1024).toFixed(2)} GB` : '...';
@@ -52,7 +52,7 @@ const StatsHUD: React.FC<StatsHUDProps> = ({ stats, gpuStats, cpuStats }) => {
                 <HUDStat label="Decoder" value={decoder} />
             </Section>
             <Section title="Connection">
-                <HUDStat label="Latency (RTT)" value={rtt} />
+                <HUDStat label="Latency" value={latency} />
                 <HUDStat label="Packet Loss" value={packetsLost} />
                 <HUDStat label="Bandwidth" value={bandwidth} />
             </Section>
