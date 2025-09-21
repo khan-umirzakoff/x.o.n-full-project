@@ -1,0 +1,38 @@
+{
+  "id": 286100,
+  "title": "You Have to Win the Game",
+  "genres": [
+    "Platformer",
+    "Metroidvania",
+    "Indie",
+    "Retro"
+  ],
+  "isFree": true,
+  "rtx": false,
+  "stores": [
+    "steam",
+    "itch"
+  ],
+  "storeLinks": {
+    "steam": "https://store.steampowered.com/app/286100/You_Have_to_Win_the_Game/",
+    "itch": "https://piratehearts.itch.io/you-have-to-win-the-game"
+  },
+  "publisher": "Minor Key Games",
+  "ageRating": "12",
+  "descriptions": {
+    "ENG": "You Have to Win the Game is a free exploration platformer with a retro 1980s PC aesthetic. Run, jump, and avoid deadly pitfalls as you explore the ruins of a lost world in search of hidden treasures and rare artifacts! Experience the thrill of four-color CGA graphics and monotonic PC speaker sounds! Or take a peek at the future of home entertainment with the SIXTEEN-COLOR EGA GRAPHICS option! Want a tougher challenge? Try YOLO mode! You only live once -- one wrong move and it's back to the start of the game!",
+    "RUS": "You Have to Win the Game — это бесплатный исследовательский платформер в стиле ретро-ПК 1980-х годов. Бегайте, прыгайте и избегайте смертельных ловушек, исследуя руины затерянного мира в поисках спрятанных сокровищ и редких артефактов! Ощутите азарт четырехцветной графики CGA и монотонных звуков динамика ПК! Или загляните в будущее домашних развлечений с опцией ШЕСТНАДЦАТИЦВЕТНОЙ ГРАФИКИ EGA! Хотите более сложного испытания? Попробуйте режим YOLO! Вы живете только один раз — одно неверное движение, и вы вернетесь к началу игры!",
+    "UZB": "\"You Have to Win the Game\" — bu 1980-yillarning retro kompyuter estetikasiga ega bo'lgan bepul tadqiqot platformeridir. Yo'qolgan dunyo xarobalarini o'rganib, yashirin xazinalar va noyob artefaktlarni qidirishda yuguring, sakrang va o'limga olib keladigan tuzoqlardan qoching! To'rt rangli CGA grafikasi va monoton kompyuter dinamiklari tovushlarining hayajonini his eting! Yoki O'N OLTITA RANGLI EGA GRAFIKASI opsiyasi bilan uy ko'ngilochar kelajagiga nazar tashlang! Qiyinroq sinovni xohlaysizmi? YOLO rejimini sinab ko'ring! Siz faqat bir marta yashaysiz — bir noto'g'ri harakat va siz o'yinning boshiga qaytasiz!"
+  },
+  "assets": {
+    "coverArt": "you_have_to_win_the_game_art.jpg",
+    "wideArt": "you_have_to_win_the_game_wide_art.jpg",
+    "screenshots": [
+      "you_have_to_win_the_game_screenshot_1.jpg",
+      "you_have_to_win_the_game_screenshot_2.jpg",
+      "you_have_to_win_the_game_screenshot_3.jpg",
+      "you_have_to_win_the_game_screenshot_4.jpg",
+      "you_have_to_win_the_game_screenshot_5.jpg"
+    ]
+  }
+}

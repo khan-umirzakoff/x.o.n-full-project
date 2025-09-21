@@ -86,7 +86,7 @@ const PlayPage: React.FC = () => {
       {showExitPrompt && (
         <ExitFullscreenPrompt
             onReturn={enterFullscreen}
-            onQuit={() => navigate(`/games/${gameId}`)}
+            onQuit={() => navigate(`/game/${gameId}`)}
         />
       )}
     </div>
