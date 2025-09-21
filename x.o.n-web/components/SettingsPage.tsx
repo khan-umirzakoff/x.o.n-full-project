@@ -120,6 +120,12 @@ const SettingsPage: React.FC = () => {
                                     checked={settings.showStatsOverlay}
                                     onChange={setSettings.setShowStatsOverlay}
                                 />
+                                <ToggleSwitch
+                                    label="Show FPS Counter"
+                                    description="Display a simple FPS counter in the corner."
+                                    checked={settings.showFPS}
+                                    onChange={setSettings.setShowFPS}
+                                />
                             </div>
                         </section>
                     </div>

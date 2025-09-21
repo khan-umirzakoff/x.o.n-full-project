@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useStreaming } from '../hooks/useStreaming';
 import LoadingOverlay from './LoadingOverlay';
 import StatsHUD from './StatsHUD';
+import FPSCounter from './FPSCounter';
 import ExitFullscreenPrompt from './ExitFullscreenPrompt';
 
 const PlayPage: React.FC = () => {
@@ -32,6 +33,7 @@ const PlayPage: React.FC = () => {
     scaleLocal,
     setScaleLocal,
     showStatsOverlay,
+    showFPS,
     clipboardStatus,
     enableClipboard,
     showExitPrompt,
@@ -45,6 +47,8 @@ const PlayPage: React.FC = () => {
     return <div className="w-screen h-screen flex items-center justify-center bg-black text-white">Loading Game...</div>;
   }
 
+  const fps = streamingStats?.video?.framesPerSecond ?? 0;
+
   return (
     <div
       ref={containerRef}
@@ -54,6 +58,7 @@ const PlayPage: React.FC = () => {
         backgroundColor: 'black',
       }}
     >
+        {isStreamPlaying && showFPS && <FPSCounter fps={fps} />}
       <div className="absolute inset-0 bg-black/50" />
 
       <video
