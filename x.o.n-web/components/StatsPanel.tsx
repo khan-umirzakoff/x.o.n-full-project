@@ -11,8 +11,6 @@ interface StatsPanelProps {
   setFramerate: (value: number) => void;
   selectedResolution: string;
   setSelectedResolution: (value: string) => void;
-  resizeRemote: boolean;
-  setResizeRemote: (value: boolean) => void;
   clipboardStatus: 'enabled' | 'disabled' | 'prompt';
   enableClipboard: () => void;
 }
@@ -68,7 +66,7 @@ const resolutionOptions = [
 ];
 
 
-const StatsPanel: React.FC<StatsPanelProps> = ({ stats, connectionStatus, videoBitrate, setVideoBitrate, audioBitrate, setAudioBitrate, framerate, setFramerate, selectedResolution, setSelectedResolution, resizeRemote, setResizeRemote, clipboardStatus, enableClipboard }) => {
+const StatsPanel: React.FC<StatsPanelProps> = ({ stats, connectionStatus, videoBitrate, setVideoBitrate, audioBitrate, setAudioBitrate, framerate, setFramerate, selectedResolution, setSelectedResolution, clipboardStatus, enableClipboard }) => {
   const [isOpen, setIsOpen] = useState(false);
   const screenHeight = window.screen.height;
 
@@ -103,15 +101,9 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ stats, connectionStatus, videoB
                 </select>
             </div>
 
-            <ToggleControl
-                label="Auto-Resolution"
-                checked={resizeRemote}
-                onChange={(e) => setResizeRemote(e.target.checked)}
-            />
-
-            <div className={`my-4 transition-opacity duration-300 ${resizeRemote ? 'opacity-50' : 'opacity-100'}`}>
-                <label htmlFor="resolution-select" className="block text-sm font-semibold text-gray-400 mb-1">Manual Resolution</label>
-                <select id="resolution-select" value={selectedResolution} onChange={(e) => setSelectedResolution(e.target.value)} disabled={resizeRemote} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed">
+            <div className="my-4">
+                <label htmlFor="resolution-select" className="block text-sm font-semibold text-gray-400 mb-1">Resolution</label>
+                <select id="resolution-select" value={selectedResolution} onChange={(e) => setSelectedResolution(e.target.value)} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     {resolutionOptions.map(opt => {
                         const height = opt.value === 'auto' ? screenHeight : parseInt(opt.value.split('x')[1], 10);
                         const isDisabled = height > screenHeight;

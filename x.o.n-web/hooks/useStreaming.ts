@@ -28,7 +28,6 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const [framerate, setFramerate] = useState(60);
   const [selectedResolution, setSelectedResolution] = useState('auto');
   const [audioBitrate, setAudioBitrate] = useState(128000);
-  const [resizeRemote, setResizeRemote] = useState(true);
   const [clipboardStatus, setClipboardStatus] = useState<'enabled' | 'disabled' | 'prompt'>('prompt');
   const [showExitPrompt, setShowExitPrompt] = useState(false);
 
@@ -159,18 +158,8 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
 
   const enterFullscreen = useCallback(() => {
     const element = containerRef.current;
-    if (!element) return;
-    if (document.fullscreenElement) return;
-
-    if (element.requestFullscreen) {
-      element.requestFullscreen();
-    } else if ((element as any).mozRequestFullScreen) {
-      (element as any).mozRequestFullScreen();
-    } else if ((element as any).webkitRequestFullscreen) {
-      (element as any).webkitRequestFullscreen();
-    } else if ((element as any).msRequestFullscreen) {
-      (element as any).msRequestFullscreen();
-    }
+    if (!element || document.fullscreenElement) return;
+    element.requestFullscreen().catch(e => console.error("Could not enter fullscreen:", e));
   }, []);
 
   const handleGoClick = useCallback(() => {
@@ -198,52 +187,42 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
 
   // --- Resolution and Fullscreen Logic ---
   const sendResolution = useCallback(() => {
-    if (!containerRef.current) return;
-    let resolutionToSend: string;
-    if (resizeRemote) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        resolutionToSend = `${Math.round(width)}x${Math.round(height)}`;
-    } else {
-        resolutionToSend = selectedResolution === 'auto'
-            ? `${window.screen.width}x${window.screen.height}`
-            : selectedResolution;
-    }
+    const resolutionToSend = selectedResolution === 'auto'
+        ? `${window.screen.width}x${window.screen.height}`
+        : selectedResolution;
+
     console.log(`Sending resolution: ${resolutionToSend}`);
     sendDataChannelMessage(`r,${resolutionToSend}`);
     sendDataChannelMessage(`s,${window.devicePixelRatio}`);
-  }, [resizeRemote, selectedResolution, sendDataChannelMessage, containerRef]);
+  }, [selectedResolution, sendDataChannelMessage]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
         if (document.fullscreenElement) {
-            console.log('Entered fullscreen, playing stream and setting resolution.');
-            webrtcRef.current?.playStream();
-            setIsStreamPlaying(true);
-            setShowExitPrompt(false); // Hide prompt if they re-enter fullscreen
-            requestAnimationFrame(sendResolution);
+            if (!isStreamPlaying) {
+                console.log('Entered fullscreen for the first time, playing stream and setting resolution.');
+                webrtcRef.current?.playStream();
+                setIsStreamPlaying(true);
+                requestAnimationFrame(sendResolution);
+            }
+            setShowExitPrompt(false);
         } else {
-            console.log('Exited fullscreen.');
             if (isStreamPlaying) {
-                setShowExitPrompt(true); // Show our custom prompt
-            } else {
-                // If we exit fullscreen before the stream was ever playing (e.g. from GO screen)
-                navigate(`/games/${gameId}`);
+                console.log('Exited fullscreen.');
+                setShowExitPrompt(true);
             }
         }
     };
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-  }, [sendResolution, isStreamPlaying, webrtcRef, navigate, gameId]);
+  }, [isStreamPlaying, sendResolution, webrtcRef]);
 
   useEffect(() => {
-    let resizeTimeout: NodeJS.Timeout;
-    const debouncedHandler = () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(sendResolution, 300);
-    };
-    window.addEventListener('resize', debouncedHandler);
-    return () => window.removeEventListener('resize', debouncedHandler);
-  }, [sendResolution]);
+    // This effect is for manual resolution changes from the dropdown
+    if (isStreamPlaying) {
+        sendResolution();
+    }
+  }, [selectedResolution, isStreamPlaying, sendResolution]);
 
 
   // --- Clipboard Logic ---
@@ -304,8 +283,8 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     game, backgroundImage, isLoading, error, containerRef, videoRef,
     connectionStatus, isStreamPlaying, streamingStats, videoBitrate,
     setVideoBitrate, framerate, setFramerate, selectedResolution,
-    setSelectedResolution, audioBitrate, setAudioBitrate, resizeRemote,
-    setResizeRemote, clipboardStatus, enableClipboard, showExitPrompt,
+    setSelectedResolution, audioBitrate, setAudioBitrate,
+    clipboardStatus, enableClipboard, showExitPrompt,
     setShowExitPrompt, handleGoClick, handlePointerLock, enterFullscreen,
   };
 };
