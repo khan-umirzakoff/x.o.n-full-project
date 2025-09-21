@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useStreaming } from '../hooks/useStreaming';
 import LoadingOverlay from './LoadingOverlay';
 import StatsPanel from './StatsPanel';
+import ExitFullscreenPrompt from './ExitFullscreenPrompt';
 
 const PlayPage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -28,8 +29,11 @@ const PlayPage: React.FC = () => {
     setResizeRemote,
     clipboardStatus,
     enableClipboard,
+    showExitPrompt,
+    setShowExitPrompt,
     handleGoClick,
     handlePointerLock,
+    enterFullscreen,
   } = useStreaming({ gameId });
 
   if (isLoading) {
@@ -88,6 +92,13 @@ const PlayPage: React.FC = () => {
           setResizeRemote={setResizeRemote}
           clipboardStatus={clipboardStatus}
           enableClipboard={enableClipboard}
+        />
+      )}
+
+      {showExitPrompt && (
+        <ExitFullscreenPrompt
+            onReturn={enterFullscreen}
+            onQuit={() => navigate(`/games/${gameId}`)}
         />
       )}
     </div>
