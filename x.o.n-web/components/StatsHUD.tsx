@@ -14,21 +14,19 @@ const HUDStat: React.FC<{ label: string; value: string | number; className?: str
 );
 
 const StatsHUD: React.FC<StatsHUDProps> = ({ stats, gpuStats, cpuStats }) => {
-    const { general, video, audio } = stats;
+    // Destructure with default empty objects to prevent errors if stats are not yet populated
+    const { general = {}, video = {} } = stats || {};
 
-    if (!general || !video) {
-        return null; // Don't render if we don't have basic stats
-    }
-
-    const rtt = general.currentRoundTripTime ? `${(general.currentRoundTripTime * 1000).toFixed(0)}ms` : 'N/A';
-    const fps = video.framesPerSecond || 0;
-    const bitrate = video.bytesReceived ? `${(video.bytesReceived * 8 / 1000000).toFixed(1)}` : '0.0';
-    const packetsLost = general.packetsLost || 0;
-    const gpuLoad = gpuStats.load ? `${(gpuStats.load * 100).toFixed(0)}%` : 'N/A';
-    const cpuLoad = cpuStats.cpu_percent ? `${cpuStats.cpu_percent.toFixed(0)}%` : 'N/A';
+    // Use optional chaining and provide default values for each stat
+    const rtt = general?.currentRoundTripTime ? `${(general.currentRoundTripTime * 1000).toFixed(0)}ms` : '...';
+    const fps = video?.framesPerSecond ?? '...';
+    const bitrate = video?.bytesReceived ? `${(video.bytesReceived * 8 / 1000000).toFixed(1)}` : '...';
+    const packetsLost = general?.packetsLost ?? '...';
+    const gpuLoad = gpuStats?.load ? `${(gpuStats.load * 100).toFixed(0)}%` : '...';
+    const cpuLoad = cpuStats?.cpu_percent ? `${cpuStats.cpu_percent.toFixed(0)}%` : '...';
 
     return (
-        <div className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded-lg text-xs z-40 pointer-events-none">
+        <div className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded-lg text-xs z-40 pointer-events-none backdrop-blur-sm">
             <div className="grid grid-cols-3 gap-x-4 gap-y-1">
                 <HUDStat label="RTT" value={rtt} />
                 <HUDStat label="FPS" value={fps} />
