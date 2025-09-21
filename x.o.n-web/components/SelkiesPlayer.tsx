@@ -15,11 +15,13 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
   const [status, setStatus] = useState<string>('Initializing...');
   const [error, setError] = useState<string | null>(null);
   const [needsUserGesture, setNeedsUserGesture] = useState<boolean>(false);
+  const [isConnecting, setIsConnecting] = useState<boolean>(true);
 
   const setErrorMsg = useCallback((msg: string) => {
     setError(msg);
     setStatus('Error');
     if (onError) onError(msg);
+    setIsConnecting(false);
   }, [onError]);
 
   const cleanup = useCallback(() => {
@@ -36,8 +38,6 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
     if (videoRef.current && document.pointerLockElement !== videoRef.current) {
       try {
         const ret = videoRef.current.requestPointerLock();
-        // Some browsers return void, some return a Promise-like
-        // If it's a promise, you may optionally attach catch
         (ret as any)?.catch?.((e: any) => console.error("Could not request pointer lock:", e));
       } catch (e) {
         console.error("Could not request pointer lock:", e);
@@ -58,8 +58,12 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
     webrtc.onerror = (msg: string) => setErrorMsg(msg);
     webrtc.onconnectionstatechange = (state: RTCPeerConnectionState) => {
       setStatus(`Connection: ${state}`);
+      if (state === 'connected') {
+        setIsConnecting(false);
+      }
       if (state === 'failed' || state === 'disconnected' || state === 'closed') {
         setErrorMsg(`Connection ${state}`);
+        setIsConnecting(false);
       }
     };
     webrtc.onplaystreamrequired = () => setNeedsUserGesture(true);
@@ -72,9 +76,9 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
   }, [signallingUrl, cleanup, setErrorMsg]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-black">
-      <div className="flex items-center justify-between p-2 text-white bg-black/60">
-        <div className="text-sm opacity-80">{status}</div>
+    <div className="w-full h-full flex flex-col">
+      <div className="absolute top-0 left-0 right-0 z-10 p-2 flex items-center justify-between text-white bg-black/30 backdrop-blur-sm">
+        <div className="text-sm" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.7)' }}>{status}</div>
         <div>
           <button
             onClick={() => {
@@ -87,13 +91,18 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
           </button>
         </div>
       </div>
+      {isConnecting && (
+        <div className="absolute top-12 left-0 w-full h-1 bg-white/20">
+          <div className="h-full bg-theme-gradient animate-loading-bar"></div>
+        </div>
+      )}
       {error && (
-        <div className="p-2 text-red-400 text-sm bg-black/60">{error}</div>
+        <div className="absolute top-14 left-0 right-0 p-2 text-red-400 text-sm bg-black/60 backdrop-blur-sm"  style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.7)' }}>{error}</div>
       )}
       <div className="flex-1 relative" onClick={handlePointerLock}>
         <video
           ref={videoRef}
-          className="absolute inset-0 w-full h-full object-contain bg-black cursor-none"
+          className="absolute inset-0 w-full h-full object-contain cursor-none"
           playsInline
           muted
           autoPlay

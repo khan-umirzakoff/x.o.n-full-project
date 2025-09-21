@@ -285,3 +285,16 @@ body {
 @keyframes shimmer {
   100% { transform: translateX(100%); }
 }
+
+@keyframes loading-bar-anim {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.animate-loading-bar {
+  animation: loading-bar-anim 15s linear forwards;
+}

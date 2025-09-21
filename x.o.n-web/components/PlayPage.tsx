@@ -141,7 +141,7 @@ const PlayPage: React.FC = () => {
         )}
 
         {showPlayer && signallingUrl && (
-          <div className="absolute inset-0 z-30 bg-black">
+          <div className="absolute inset-0 z-30">
             <SelkiesPlayer
               signallingUrl={signallingUrl}
               onClose={() => setShowPlayer(false)}
