@@ -47,6 +47,8 @@ const PlayPage: React.FC = () => {
     return <div className="w-screen h-screen flex items-center justify-center bg-black text-white">Loading Game...</div>;
   }
 
+  const fps = streamingStats?.video?.framesPerSecond ?? 0;
+
   return (
     <div
       ref={containerRef}
