@@ -80,18 +80,6 @@ const PlayPage: React.FC = () => {
         <StatsPanel
           stats={streamingStats}
           connectionStatus={connectionStatus}
-          videoBitrate={videoBitrate}
-          setVideoBitrate={setVideoBitrate}
-          framerate={framerate}
-          setFramerate={setFramerate}
-          selectedResolution={selectedResolution}
-          setSelectedResolution={setSelectedResolution}
-          audioBitrate={audioBitrate}
-          setAudioBitrate={setAudioBitrate}
-          resizeRemote={resizeRemote}
-          setResizeRemote={setResizeRemote}
-          clipboardStatus={clipboardStatus}
-          enableClipboard={enableClipboard}
         />
       )}
 
