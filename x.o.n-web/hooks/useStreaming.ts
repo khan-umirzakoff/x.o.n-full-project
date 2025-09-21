@@ -28,6 +28,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   const [framerate, setFramerate] = useState(60);
   const [selectedResolution, setSelectedResolution] = useState('auto');
   const [audioBitrate, setAudioBitrate] = useState(128000);
+  const [resizeRemote, setResizeRemote] = useState(true);
   const [clipboardStatus, setClipboardStatus] = useState<'enabled' | 'disabled' | 'prompt'>('prompt');
 
   // Refs
@@ -168,11 +169,7 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   }, []);
 
   const handleGoClick = useCallback(() => {
-    if (webrtcRef.current) {
-      webrtcRef.current.playStream();
-      enterFullscreen();
-      setIsStreamPlaying(true);
-    }
+    enterFullscreen();
   }, [enterFullscreen]);
 
   const handlePointerLock = useCallback(() => {
@@ -200,18 +197,46 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
   // Effect to handle sending resolution changes to the server
   useEffect(() => {
     if (isStreamPlaying) {
-        let resolutionToSend = "1920x1080"; // Default
-        if (selectedResolution === 'auto') {
-            resolutionToSend = `${window.screen.width}x${window.screen.height}`;
+        let resolutionToSend: string;
+        if (resizeRemote) {
+            // Auto-resolution mode
+            const { width, height } = containerRef.current!.getBoundingClientRect();
+            resolutionToSend = `${Math.round(width)}x${Math.round(height)}`;
         } else {
-            resolutionToSend = selectedResolution;
+            // Manual resolution mode
+            resolutionToSend = selectedResolution === 'auto'
+                ? `${window.screen.width}x${window.screen.height}`
+                : selectedResolution;
         }
 
         console.log(`Sending resolution: ${resolutionToSend}`);
         sendDataChannelMessage(`r,${resolutionToSend}`);
         sendDataChannelMessage(`s,${window.devicePixelRatio}`);
     }
-  }, [selectedResolution, isStreamPlaying]);
+  }, [selectedResolution, isStreamPlaying, resizeRemote]);
+
+  // This effect now correctly handles the logic after entering fullscreen
+  useEffect(() => {
+    const onFullscreenChange = () => {
+        if (document.fullscreenElement) {
+            console.log('Entered fullscreen, playing stream and setting resolution.');
+            webrtcRef.current?.playStream();
+            setIsStreamPlaying(true);
+            // The resolution sending logic will be triggered by isStreamPlaying changing.
+        } else {
+            console.log('Exited fullscreen.');
+            // Optional: handle disconnect or navigation on fullscreen exit
+            // For now, we just log it.
+            setIsStreamPlaying(false); // Or navigate away
+        }
+    };
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+
+    return () => {
+        document.removeEventListener('fullscreenchange', onFullscreenChange);
+    };
+  }, []); // Empty dependency array means this runs once on mount
 
   useEffect(() => {
     if (isStreamPlaying) {
@@ -305,6 +330,8 @@ export const useStreaming = ({ gameId }: UseStreamingParams) => {
     setSelectedResolution,
     audioBitrate,
     setAudioBitrate,
+    resizeRemote,
+    setResizeRemote,
     clipboardStatus,
     enableClipboard,
     handleGoClick,

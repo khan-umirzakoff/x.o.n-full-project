@@ -11,10 +11,13 @@ interface StatsPanelProps {
   setFramerate: (value: number) => void;
   selectedResolution: string;
   setSelectedResolution: (value: string) => void;
+  resizeRemote: boolean;
+  setResizeRemote: (value: boolean) => void;
   clipboardStatus: 'enabled' | 'disabled' | 'prompt';
   enableClipboard: () => void;
 }
 
+// Helper components for UI elements in the panel
 const StatRow: React.FC<{ label: string; value: any }> = ({ label, value }) => (
   <div className="flex justify-between items-center text-sm mb-1">
     <span className="font-semibold text-gray-400">{label}:</span>
@@ -40,6 +43,16 @@ const QualityControlSlider: React.FC<{
   </div>
 );
 
+const ToggleControl: React.FC<{ label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }> = ({ label, checked, onChange }) => (
+    <div className="flex items-center justify-between my-3">
+        <label className="text-sm font-semibold text-gray-400">{label}</label>
+        <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+            <input type="checkbox" checked={checked} onChange={onChange} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+            <label className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-700 cursor-pointer"></label>
+        </div>
+    </div>
+);
+
 // --- Constants for Controls ---
 const framerateOptions = [
     { value: 30, label: '30 fps' }, { value: 45, label: '45 fps' }, { value: 60, label: '60 fps' },
@@ -55,7 +68,7 @@ const resolutionOptions = [
 ];
 
 
-const StatsPanel: React.FC<StatsPanelProps> = ({ stats, connectionStatus, videoBitrate, setVideoBitrate, audioBitrate, setAudioBitrate, framerate, setFramerate, selectedResolution, setSelectedResolution, clipboardStatus, enableClipboard }) => {
+const StatsPanel: React.FC<StatsPanelProps> = ({ stats, connectionStatus, videoBitrate, setVideoBitrate, audioBitrate, setAudioBitrate, framerate, setFramerate, selectedResolution, setSelectedResolution, resizeRemote, setResizeRemote, clipboardStatus, enableClipboard }) => {
   const [isOpen, setIsOpen] = useState(false);
   const screenHeight = window.screen.height;
 
@@ -90,9 +103,15 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ stats, connectionStatus, videoB
                 </select>
             </div>
 
-            <div className="my-4">
-                <label htmlFor="resolution-select" className="block text-sm font-semibold text-gray-400 mb-1">Resolution</label>
-                <select id="resolution-select" value={selectedResolution} onChange={(e) => setSelectedResolution(e.target.value)} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <ToggleControl
+                label="Auto-Resolution"
+                checked={resizeRemote}
+                onChange={(e) => setResizeRemote(e.target.checked)}
+            />
+
+            <div className={`my-4 transition-opacity duration-300 ${resizeRemote ? 'opacity-50' : 'opacity-100'}`}>
+                <label htmlFor="resolution-select" className="block text-sm font-semibold text-gray-400 mb-1">Manual Resolution</label>
+                <select id="resolution-select" value={selectedResolution} onChange={(e) => setSelectedResolution(e.target.value)} disabled={resizeRemote} className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed">
                     {resolutionOptions.map(opt => {
                         const height = opt.value === 'auto' ? screenHeight : parseInt(opt.value.split('x')[1], 10);
                         const isDisabled = height > screenHeight;

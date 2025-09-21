@@ -24,6 +24,8 @@ const PlayPage: React.FC = () => {
     setSelectedResolution,
     audioBitrate,
     setAudioBitrate,
+    resizeRemote,
+    setResizeRemote,
     clipboardStatus,
     enableClipboard,
     handleGoClick,
@@ -82,6 +84,8 @@ const PlayPage: React.FC = () => {
           setSelectedResolution={setSelectedResolution}
           audioBitrate={audioBitrate}
           setAudioBitrate={setAudioBitrate}
+          resizeRemote={resizeRemote}
+          setResizeRemote={setResizeRemote}
           clipboardStatus={clipboardStatus}
           enableClipboard={enableClipboard}
         />
