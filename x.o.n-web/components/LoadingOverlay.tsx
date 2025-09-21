@@ -9,7 +9,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ status, onGoClick }) =>
   const isConnected = status === 'connected';
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/70 backdrop-blur-md transition-opacity duration-500">
+    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/60 transition-opacity duration-500">
       {isConnected ? (
         <div className="text-center animate-fade-in">
           <button
