@@ -102,7 +102,7 @@ const SelkiesPlayer: React.FC<SelkiesPlayerProps> = ({ signallingUrl, onClose, o
       <div className="flex-1 relative" onClick={handlePointerLock}>
         <video
           ref={videoRef}
-          className="absolute inset-0 w-full h-full object-contain cursor-none"
+          className="absolute inset-0 w-full h-full object-contain bg-black cursor-none"
           playsInline
           muted
           autoPlay
