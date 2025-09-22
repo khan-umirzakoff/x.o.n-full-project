@@ -483,13 +483,20 @@ export class WebRTCPlayer {
                 };
             }
 
-            const transport = Object.keys(transports).length > 0 ? transports[Object.keys(transports)[0]] : null;
-            if (transport) {
+            if (Object.keys(transports).length > 0) {
+                const transport = transports[Object.keys(transports)[0]];
                 connectionDetails.general.bytesReceived = transport.bytesReceived;
                 connectionDetails.general.bytesSent = transport.bytesSent;
+                reports.selectedCandidatePairId = transport.selectedCandidatePairId;
+            } else if (reports.selectedCandidatePairId) {
+                const candidatePair = candidatePairs[reports.selectedCandidatePairId];
+                if (candidatePair) {
+                    connectionDetails.general.bytesReceived = candidatePair.bytesReceived;
+                    connectionDetails.general.bytesSent = candidatePair.bytesSent;
+                }
             }
 
-            const candidatePair = selectedCandidatePairId ? candidatePairs[selectedCandidatePairId] : null;
+            const candidatePair = reports.selectedCandidatePairId ? candidatePairs[reports.selectedCandidatePairId] : null;
             if (candidatePair) {
                 connectionDetails.general.availableReceiveBandwidth = candidatePair.availableIncomingBitrate || 0;
                 connectionDetails.general.currentRoundTripTime = candidatePair.currentRoundTripTime || null;
