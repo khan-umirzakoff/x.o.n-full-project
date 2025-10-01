@@ -5,7 +5,7 @@ import { Game, Language, Banner } from '../types';
 import { sanitizeGameTitle } from '../utils/imageUtils';
 
 // --- Content-based games loader (MVP)
-// If you add JSON manifests under content/games/**/game.json, we will auto-load them at build/runtime
+// If you add JSON manifests under public/content/games/**/game.json, we will auto-load them at build/runtime
 // and map assets to content folder paths directly.
 interface GameManifest {
   id?: number;
@@ -48,7 +48,7 @@ interface BannerManifestFile {
 const loadBannersFromContent = (): Banner[] => {
   try {
     // FIX: Used a type assertion `(import.meta as any)` to bypass the TypeScript error "Property 'glob' does not exist on type 'ImportMeta'". This assumes the code runs in a Vite environment where this property is available at runtime.
-    const modules = (import.meta as any).glob('../content/banners/*.json', { eager: true, import: 'default' }) as Record<string, unknown>;
+    const modules = (import.meta as any).glob('../public/content/banners/*.json', { eager: true, import: 'default' }) as Record<string, unknown>;
     const entries = Object.entries(modules) as Array<[string, BannerManifestFile]>;
     if (!entries || entries.length === 0) return [];
 
@@ -57,7 +57,7 @@ const loadBannersFromContent = (): Banner[] => {
     for (const [path, mf] of entries) {
       const normalized = path.replace(/\\/g, '/');
       const baseDirMatch = normalized.match(/(.*)\/[^/]+\.json$/);
-      const baseDir = baseDirMatch ? baseDirMatch[1].replace(/^\.\./, '') : '../content/banners';
+      const baseDir = baseDirMatch ? baseDirMatch[1].replace(/^\.\./, '') : '../public/content/banners';
 
       mf.banners
         .filter(b => b.isActive !== false)
@@ -92,16 +92,16 @@ const loadGamesFromContent = (): Game[] => {
   try {
     // Glob all manifests if any exist. If none, this returns an empty object.
     // FIX: Used a type assertion `(import.meta as any)` to bypass the TypeScript error "Property 'glob' does not exist on type 'ImportMeta'". This assumes the code runs in a Vite environment where this property is available at runtime.
-    const modules = (import.meta as any).glob('../content/games/**/game.json', { eager: true, import: 'default' }) as Record<string, unknown>;
+    const modules = (import.meta as any).glob('../public/content/games/**/game.json', { eager: true, import: 'default' }) as Record<string, unknown>;
 
     const entries = Object.entries(modules) as Array<[string, GameManifest]>;
     if (!entries || entries.length === 0) return [];
 
     // Map to Game[]
     const games: Game[] = entries.map(([path, mf], idx) => {
-      // Extract folder name from path: e.g. ../content/games/lockdown_protocol/game.json -> lockdown_protocol
+      // Extract folder name from path: e.g. ../public/content/games/lockdown_protocol/game.json -> lockdown_protocol
       const normalized = path.replace(/\\/g, '/');
-      const m = normalized.match(/content\/games\/([^/]+)\/game\.json$/);
+      const m = normalized.match(/public\/content\/games\/([^/]+)\/game\.json$/);
       const folder = m ? m[1] : sanitizeGameTitle(mf.title);
 
        const base = `/content/games/${folder}`;
